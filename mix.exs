@@ -58,7 +58,13 @@ defmodule Qwynk.MixProject do
       {:gettext, "~> 0.20"},
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.1.1"},
-      {:bandit, "~> 1.5"}
+      {:bandit, "~> 1.5"},
+      {:picosat_elixir, "~> 0.2.3"},
+      {:ash, "~> 3.3"},
+      {:ash_postgres, "~> 2.1"},
+      {:ash_phoenix, "~> 2.1"},
+      {:ash_authentication, "~> 4.0"},
+      {:ash_authentication_phoenix, "~> 2.0"}
     ]
   end
 
