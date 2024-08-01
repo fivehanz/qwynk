@@ -1,0 +1,45 @@
+volumes:
+  qwynk_postgres_data:
+
+networks:
+  qwynk-nw:
+    driver: bridge
+
+services:
+  web:
+    container_name: qwynk-web
+    build:
+      context: .
+      dockerfile: dev.Dockerfile
+    ports:
+      - "4000:4000"
+    volumes:
+      - .:/app
+      - ./deps:/app/deps
+      - ./_build:/app/_build
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://user:password@db/qwynk_db
+      SECRET_KEY_BASE: e9Etkgml4tYuWm2KR90WMKn8PLUGd0RV08FnZ+XFpHcK02PeGIu3E364tkfSU0BR
+      MIX_ENV: dev
+    networks:
+      - qwynk-nw
+
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - qwynk_postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=qwynk_db
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    networks:
+      - qwynk-nw
+
+  # redis:
+  #   image: redis:7-alpine
+  #   networks:
+  #     - twizl-nw
