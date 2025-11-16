@@ -1,4 +1,5 @@
 import Config
+config :ash, policies: [show_policy_breakdowns?: true]
 
 # Configure your database
 config :qwynk, Qwynk.Repo,
@@ -64,7 +65,7 @@ config :qwynk, QwynkWeb.Endpoint,
   ]
 
 # Enable dev routes for dashboard and mailbox
-config :qwynk, dev_routes: true
+config :qwynk, dev_routes: true, token_signing_secret: "6afma8evoMHgXCjE4kaY/hP1iSqQ4af9"
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"

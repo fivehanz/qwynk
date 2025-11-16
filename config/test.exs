@@ -1,4 +1,8 @@
 import Config
+config :qwynk, Oban, testing: :manual
+config :qwynk, token_signing_secret: "uYgyqMyd906SyVY9suky+GfThAL9r3ag"
+config :bcrypt_elixir, log_rounds: 1
+config :ash, policies: [show_policy_breakdowns?: true], disable_async?: true
 
 # Configure your database
 #
