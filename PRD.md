@@ -21,7 +21,7 @@ Latency Budget: < 5ms (Internal Processing).
 1.  **Request:** `GET /{slug}` (returns "x-qwynk-cache" header with hit / miss)
 2.  **Layer 1 (Memory):** Check ETS Table `:qwynk_cache`. 
     * *Hit:* Return 302. Spawn Async Analytics Task.
-3.  Layer 3 (DB):
+3.  Layer 2 (DB):
     * *Miss:* Query DB (`Link.resolve`).
         * *Found:* Write to ETS (TTL 10m). Return 302. Spawn Async Analytics Task.
         * *Null:* Return 404 HTML.
@@ -38,7 +38,7 @@ Direct DB writes on request are forbidden.
     * **Geo:** Lookup IP in local MaxMind `.mmdb`.
     * **Privacy:** Fetch `DailySalt`. Hash = `SHA256(IP + UA + Salt)`.
 3.  **Buffer:** Struct is stored in a list in GenServer State.
-4.  **Flush:** Every 5 seconds OR 100 items -> Bulk Insert to Postgres via Ash.
+4.  **Flush:** Every 5 seconds OR 1000 items -> Bulk Insert to Postgres via Ash.
 
 ## 4. UI/UX Requirements
 
