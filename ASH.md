@@ -12,7 +12,7 @@
 #### Attributes
 | Name | Type | Constraints | Default | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| `slug` | String | Min: 3, Max: 64, Regex: `^[a-zA-Z0-9-_]+$` | - | The public identifier. |
+| `slug` | String | Min: 3, Max: 64, Regex: `^[a-z0-9-]+$` | - | The public identifier. |
 | `destination` | String | URL format | - | The target URL. |
 | `owner_id` | UUID | References `User` | - | |
 | `is_active` | Boolean | - | `true` | Soft delete toggle. |
@@ -22,8 +22,8 @@
 #### Actions
 1.  **Action: `create`**
     * *Accepts:* `destination`, `slug` (optional).
-    * *Change:* If `slug` is missing, generate `NanoID(4)`.
-    * *Validation:* Check slug uniqueness.
+    * *Change:* If `slug` is missing, call `Qwynk.Traffic.SlugGenerator.generate/0` (Goblin-Speak).
+    * *Retry Logic:* On unique constraint error, call `generate_with_suffix/0` and retry once.
 2.  **Action: `resolve` (Read)**
     * *Argument:* `slug`
     * *Filter:* `slug == ^arg and is_active == true`

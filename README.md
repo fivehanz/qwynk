@@ -8,11 +8,14 @@
 * **Frontend:** LiveView, Tailwind v4, D3.js
 * **Geo:** MaxMind GeoLite2 (Local MMDB)
 
+## Directory Structure
+* `lib/qwynk/traffic/` - Link management & Slug logic.
+* `lib/qwynk/analytics/` - Hit logging & GeoIP.
+* `lib/qwynk/accounts/` - User auth.
+
 ## Architecture
 
-
 [Image of Qwynk Data Flow Diagram]
-
 
 1.  **The Bouncer:** Incoming traffic hits the Phoenix Endpoint.
 2.  **The Cache:** Lookups happen in RAM (ETS).
@@ -20,7 +23,7 @@
 4.  **The Ledger:** Analytics are hashed (anonymized) and buffered before writing.
 
 ## Prerequisites (FreeBSD)
-* Elixir 1.18+ & Erlang/OTP 26+ (check mise.toml)
+* Elixir 1.18+ & Erlang/OTP 26+ (verified in mise.toml)
 * PostgreSQL 16+
 * `gmake` and `clang` (Required for `picosat` NIF compilation)
 * MaxMind City Database (`GeoLite2-City.mmdb`) placed in `priv/geoip/`

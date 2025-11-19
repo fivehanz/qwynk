@@ -26,7 +26,12 @@ Latency Budget: < 5ms (Internal Processing).
         * *Found:* Write to ETS (TTL 10m). Return 302. Spawn Async Analytics Task.
         * *Null:* Return 404 HTML.
 
-### 3.3 The Analytics Pipe (The "Buffer")
+### 3.3 Slug Generation ("Goblin-Speak")
+* **Algorithm:** Programmatic CVC-CVC construction (e.g., `zip-zap`).
+* **Collision Strategy:** Append numeric suffix (e.g., `zip-zap-5`).
+* **Benefit:** Memorable, fun, high entropy, zero dictionary dependencies.
+
+### 3.4 The Analytics Pipe (The "Buffer")
 Direct DB writes on request are forbidden.
 1.  **Capture:** Request Data (IP, UA, Referrer) is passed to `Qwynk.Analytics.Buffer` (GenServer).
 2.  **Enrichment:**
