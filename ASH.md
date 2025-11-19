@@ -7,11 +7,13 @@
 * **Persistence:** PostgreSQL Table `links`
 * **Type:** Persistent
 * **Identity:**
-    * Primary Key: `slug` (String) - *chosen for read-speed optimization*
+    * Primary Key: `id` (UUID) - *Standard Surrogate Key*
+    * Identity: `slug` (Unique Index) - *For fast lookups*
 
 #### Attributes
 | Name | Type | Constraints | Default | Notes |
 | :--- | :--- | :--- | :--- | :--- |
+| `id` | UUID | Primary Key, Auto-generated | |
 | `slug` | String | Min: 3, Max: 64, Regex: `^[a-z0-9-]+$` | - | The public identifier. |
 | `destination` | String | URL format | - | The target URL. |
 | `owner_id` | UUID | References `User` | - | |
@@ -27,7 +29,9 @@
 2.  **Action: `resolve` (Read)**
     * *Argument:* `slug`
     * *Filter:* `slug == ^arg and is_active == true`
-    * *Optimization:* This is the "Source of Truth" for the ETS Cache.
+    * *Optimization:* 
+      * Uses Postgres Index Scan on `slug`, then fetches ID.
+      * This is the "Source of Truth" for the ETS Cache.
 3.  **Action: `disable` (Update)**
     * *Change:* Set `is_active` to `false`.
 
@@ -45,7 +49,7 @@
 #### Attributes
 | Name | Type | Notes |
 | :--- | :--- | :--- |
-| `link_slug` | String | Foreign Key to `Link.slug`. |
+| `link_id` | UUID | Foreign Key to `Link.id`. (16 bytes vs string length) |
 | `timestamp` | UTC | The moment of the click. |
 | `visitor_hash`| String | SHA256(IP + UA + DailySalt). **No PII stored.** |
 | `country` | String | ISO 2-Char (e.g., "US", "IN"). Derived from MaxMind. |
@@ -75,10 +79,5 @@
 
 ## 3. Domain: Accounts
 **Purpose:** Authentication and System Access.
-**Library:** `ash_authentication`
+**Library:** managed by `ash_authentication`
 
-### Resource: `User` (illustrative, ash_authentication manages it by itself)
-* **Persistence:** PostgreSQL Table `users`
-* **Strategies:** Password + API.
-* **Attributes:** `email`, `hashed_password`.
-* **Policies:** Only the user can edit their own `Links`.
