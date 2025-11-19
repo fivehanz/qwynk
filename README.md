@@ -1,18 +1,35 @@
 # Qwynk
 
-To start your Phoenix server:
+**Qwynk** is a high-performance, privacy-centric URL shortener and link manager designed for the "UNIX Philosophy." It separates the redirect engine (ETS-backed) from the analytics engine (Async Batching).
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+## Tech Stack
+* **Core:** Elixir, Phoenix 1.8, Ash Framework 3.0
+* **Data:** PostgreSQL, ETS (Erlang Term Storage)
+* **Frontend:** LiveView, Tailwind v4, D3.js
+* **Geo:** MaxMind GeoLite2 (Local MMDB)
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+## Architecture
 
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
 
-## Learn more
+[Image of Qwynk Data Flow Diagram]
 
-* Official website: https://www.phoenixframework.org/
-* Guides: https://hexdocs.pm/phoenix/overview.html
-* Docs: https://hexdocs.pm/phoenix
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+
+1.  **The Bouncer:** Incoming traffic hits the Phoenix Endpoint.
+2.  **The Cache:** Lookups happen in RAM (ETS).
+3.  **The Vault:** Persistent data lives in Postgres, managed by Ash Resources.
+4.  **The Ledger:** Analytics are hashed (anonymized) and buffered before writing.
+
+## Prerequisites (FreeBSD)
+* Elixir 1.18+ & Erlang/OTP 26+ (check mise.toml)
+* PostgreSQL 16+
+* `gmake` and `clang` (Required for `picosat` NIF compilation)
+* MaxMind City Database (`GeoLite2-City.mmdb`) placed in `priv/geoip/`
+
+## Configuration
+Set the following environment variables in your `sys.rc` or `.env`:
+
+```bash
+export SECRET_KEY_BASE="your_secure_key"
+export DATABASE_URL="postgres://user:pass@localhost/qwynk_prod"
+export PHX_HOST="jsmx.org"
+export POOL_SIZE=10
