@@ -62,7 +62,7 @@ config :spark,
 config :qwynk,
   ecto_repos: [Qwynk.Repo],
   generators: [timestamp_type: :utc_datetime],
-  ash_domains: [Qwynk.Accounts]
+  ash_domains: [Qwynk.Analytics, Qwynk.Traffic, Qwynk.Accounts]
 
 # Configures the endpoint
 config :qwynk, QwynkWeb.Endpoint,
