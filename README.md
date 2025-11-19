@@ -1,11 +1,13 @@
 # Qwynk
 
-**Qwynk** is a high-performance, privacy-centric URL shortener and link manager designed for the "UNIX Philosophy." It separates the redirect engine (ETS-backed) from the analytics engine (Async Batching).
+**Qwynk** is a high-performance, privacy-centric URL shortener and link manager. 
+
+* It separates the redirect engine (ETS-backed) from the analytics engine (Async Batching).
 
 ## Tech Stack
-* **Core:** Elixir, Phoenix 1.8, Ash Framework 3.0
-* **Data:** PostgreSQL, ETS (Erlang Term Storage)
-* **Frontend:** LiveView, Tailwind v4, D3.js
+* **Core:** Elixir 1.18+ / OTP 26+, Phoenix 1.8, Ash Framework 3.0
+* **Data:** PostgreSQL 16+, ETS (Erlang Term Storage)
+* **Frontend:** LiveView v1, Tailwind v4 + Daisy UI v5, D3.js
 * **Geo:** MaxMind GeoLite2 (Local MMDB)
 
 ## Directory Structure
