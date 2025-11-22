@@ -92,26 +92,23 @@ Qwynk motion behaves like **pressure-regulated hydraulics**: tight, functional, 
 | `hydraulic` | `cubic-bezier(0.19, 1, 0.22, 1)` | Default UI motion |
 | `data-out` | `ease-out` | Chart transitions |
 
-### Tailwind v5 Tokens (Config Snippet)
+### Tailwind v4 Tokens (Config Snippet)
 
-```js
-// tailwind.config.js
-export default {
-  theme: {
-    extend: {
-      transitionDuration: {
-        instant: "0ms",
-        ui: "120ms",
-        system: "200ms",
-        data: "320ms",
-      },
-      transitionTimingFunction: {
-        hydraulic: "cubic-bezier(0.19, 1, 0.22, 1)",
-      },
-    },
-  },
-  plugins: [require("daisyui")],
-};
+```css
+
+/* In app.css, inside the @theme block */
+@theme {
+  /* ... existing font vars ... */
+
+  /* MOTION TOKEN MAP */
+  --ease-hydraulic: cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-data-out: ease-out;
+
+  --duration-instant: 0ms;
+  --duration-ui: 120ms;
+  --duration-system: 200ms;
+  --duration-data: 320ms;
+}
 
 ```
 
@@ -126,3 +123,106 @@ Neo-Brutalist structure. No rounded corners on the main container (or very small
   <h3 class="font-plex text-xs uppercase tracking-widest text-slate-500">Clicks</h3>
   <p class="font-grotesk font-bold text-3xl text-teal-400">1,024</p>
 </div>
+```
+
+---
+
+## 6. Appendix
+
+```css
+/* 1. TYPOGRAPHY IMPORT */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400&family=Space+Grotesk:wght@700&display=swap');
+
+/* 2. TAILWIND V4 SETUP */
+@import "tailwindcss";
+
+/* 3. GLOBAL THEME CONFIG (Fonts & Motion) */
+@theme {
+  /* --- FONTS --- */
+  /* We override the defaults so you don't have to type 'font-plex' everywhere */
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-heading: "Space Grotesk", sans-serif;
+
+  /* --- MOTION DOCTRINE (Hydraulics) --- */
+  --ease-hydraulic: cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-data-out: ease-out;
+
+  --duration-instant: 0ms;
+  --duration-ui: 120ms;
+  --duration-system: 200ms;
+  --duration-data: 320ms;
+  
+  /* --- SPACING --- */
+  --spacing-4-5: 1.125rem; /* For dense data grids */
+}
+
+/* 4. DAISYUI V5 SETUP */
+@plugin "daisyui" {
+  themes: abyssal --default;
+}
+
+/* 5. THE ABYSSAL THEME DEFINITION */
+@plugin "daisyui/theme" {
+  name: "abyssal";
+  default: true;
+
+  /* --- PALETTE: BIOLUMINESCENCE --- */
+  
+  /* The Void (Backgrounds) */
+  --color-base-100: #020617; /* Abyssal Void (Slate-950) */
+  --color-base-200: #0F172A; /* Deep Hull (Slate-900) */
+  --color-base-300: #1E293B; /* Surface Detail (Slate-800) */
+  --color-base-content: #F1F5F9; /* Ice White (Slate-100) */
+
+  /* The Signal (Primary) */
+  --color-primary: #2DD4BF; /* Cyan Flux (Teal-400) */
+  --color-primary-content: #020617; /* Black text on Cyan */
+  
+  /* The Muted (Secondary/Neutral) */
+  --color-secondary: #94A3B8; /* Steel Grey (Slate-400) */
+  --color-secondary-content: #020617;
+  --color-neutral: #1E293B;   /* Slate-800 */
+  --color-neutral-content: #94A3B8;
+
+  /* The Critical (Error) */
+  --color-error: #F87171; /* Reactor Red (Red-400) */
+  --color-error-content: #020617;
+
+  --color-success: #2DD4BF; /* Map success to Cyan for consistency */
+  --color-warning: #FBBF24; /* Amber-400 */
+  --color-info: #38BDF8;    /* Sky-400 */
+
+  /* --- SHAPE: NEO-BRUTALIST --- */
+  /* "Zero Elasticity" visual translation -> Sharp Corners */
+  --radius-selector: 0rem; 
+  --radius-field: 0rem;
+  --radius-box: 0rem;
+  --radius-btn: 0rem;
+  
+  --border-btn: 1px;
+  --border-input: 1px;
+}
+
+/* 6. UTILITY CLASSES & OVERRIDES */
+
+/* Utility for the Space Grotesk Heading */
+@utility font-heading {
+  font-family: var(--font-heading);
+  letter-spacing: -0.025em;
+  font-weight: 700;
+}
+
+/* Utility for Glass Panels (Dashboard Cards) */
+@utility glass-panel {
+  @apply border border-base-300 bg-base-200/50 backdrop-blur-md;
+}
+
+/* Apply the Motion Doctrine globally to interactive elements */
+@layer base {
+  button, a, .btn {
+    @apply transition-all duration-ui ease-hydraulic;
+  }
+}
+
+```
