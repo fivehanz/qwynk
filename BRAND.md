@@ -34,11 +34,11 @@ We utilize a **Tri-Type Stack** to strictly separate hierarchy, interface, and r
 * **Why:** "Mankind and Machine." Engineered for readability with distinct humanist angles. It adds a technical sophistication that generic fonts lack.
 
 ### C. Data / Code (The Truth)
-**Font:** [JetBrains Mono](https://www.jetbrains.com/lp/mono/)
+**Font:** [IBM Plex Mono](https://fonts.google.com/specimen/IBM+Plex+Mono)
 * **Weight:** Regular (400)
 * **Tracking:** Wide
 * **Role:** Link Slugs, Visitor Hashes, IP Addresses, Console Logs.
-* **Why:** Designed strictly for code. The increased x-height makes differentiating `0`, `O`, `1`, `l` effortless.
+* **Why:** The industrial sibling to the body font. Creates a unified "blueprint" aesthetic. Crisp, unpretentious, and highly legible for technical data.
 
 ---
 
@@ -131,7 +131,7 @@ Neo-Brutalist structure. No rounded corners on the main container (or very small
 
 ```css
 /* 1. TYPOGRAPHY IMPORT */
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400&family=Space+Grotesk:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@700&display=swap');
 
 /* 2. TAILWIND V4 SETUP */
 @import "tailwindcss";
@@ -141,7 +141,7 @@ Neo-Brutalist structure. No rounded corners on the main container (or very small
   /* --- FONTS --- */
   /* We override the defaults so you don't have to type 'font-plex' everywhere */
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
   --font-heading: "Space Grotesk", sans-serif;
 
   /* --- MOTION DOCTRINE (Hydraulics) --- */
