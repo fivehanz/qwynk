@@ -1,0 +1,102 @@
+/* 1. TYPOGRAPHY IMPORT */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@700&display=swap');
+
+/* 2. TAILWIND V4 SETUP */
+@import "tailwindcss";
+
+/* 3. GLOBAL THEME CONFIG */
+@theme {
+    /* --- FONTS --- */
+    --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+    --font-heading: "Space Grotesk", sans-serif;
+
+    /* --- MOTION --- */
+    --ease-hydraulic: cubic-bezier(0.19, 1, 0.22, 1);
+    --ease-data-out: ease-out;
+
+    --duration-instant: 0ms;
+    --duration-ui: 120ms;
+    --duration-system: 200ms;
+    --duration-data: 320ms;
+
+    /* --- COLORS --- */
+    --color-abyssal-void: #020617;
+    --color-deep-hull: #0F172A;
+    --color-surface: #1E293B;
+    --color-ice-white: #F1F5F9;
+
+    --color-cyan-flux: #2DD4BF;
+    --color-reactor-red: #F87171;
+    --color-steel-grey: #94A3B8;
+
+    /* Map to semantic names for compatibility with my code */
+    --color-base-100: var(--color-abyssal-void);
+    --color-base-200: var(--color-deep-hull);
+    --color-base-300: var(--color-surface);
+    --color-base-content: var(--color-ice-white);
+
+    --color-primary: var(--color-cyan-flux);
+    --color-primary-content: var(--color-abyssal-void);
+
+    --color-secondary: var(--color-steel-grey);
+    --color-error: var(--color-reactor-red);
+}
+
+/* 4. UTILITIES & COMPONENTS */
+
+@utility font-heading {
+    font-family: var(--font-heading);
+    letter-spacing: -0.025em;
+    font-weight: 700;
+}
+
+@utility glass-panel {
+    @apply border border-base-300 bg-base-200/50 backdrop-blur-md;
+}
+
+/* Re-implement basic DaisyUI classes used in the page */
+@layer components {
+    .btn {
+        @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium transition-all cursor-pointer border;
+        transition-duration: var(--duration-ui);
+        transition-timing-function: var(--ease-hydraulic);
+        border-radius: 0;
+        /* Neo-brutalist */
+    }
+
+    .btn-primary {
+        @apply bg-primary text-primary-content border-primary hover:bg-primary/90;
+    }
+
+    .btn-outline.btn-primary {
+        @apply bg-transparent text-primary border-primary hover:bg-primary hover:text-primary-content;
+    }
+
+    .btn-ghost {
+        @apply bg-transparent border-transparent text-current hover:bg-base-200;
+    }
+
+    .btn-error {
+        @apply bg-error text-white border-error hover:bg-error/90;
+    }
+
+    .btn-outline.btn-error {
+        @apply bg-transparent text-error border-error hover:bg-error hover:text-white;
+    }
+}
+
+@layer base {
+    body {
+        @apply bg-base-100 text-base-content;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        @apply font-heading;
+    }
+}
