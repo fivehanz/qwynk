@@ -16,7 +16,268 @@ Qwynk is an intersection of **The Ruler** (Control) and **The Creator** (Enginee
 
 ---
 
-## 2. Typography
+## 2. Brand Positioning & Strategy
+
+### Target Audience
+**Primary:** Engineering-Led SaaS Companies (10-500 employees)
+- CTOs, VPs of Engineering, DevOps Teams
+- Companies with custom link infrastructure needs
+- Performance-obsessed technical buyers
+
+**Secondary:** Growth Marketers & Product Managers
+- Need granular traffic insights
+- Require reliable, low-latency redirects
+- Value control over third-party dependencies
+
+### Competitive Differentiation
+
+| Attribute | Qwynk Position | Competitor Position |
+|-----------|----------------|---------------------|
+| **Infrastructure Philosophy** | Bare-metal reality, physical asset | "Cloud magic," abstracted service |
+| **Control** | Absolute sovereignty | Managed convenience |
+| **Privacy** | GDPR-first, zero PII storage | Cookie tracking, data mining |
+| **Performance** | <5ms internal latency | "Fast enough" |
+| **Voice** | Technical precision | Marketing fluff |
+| **Pricing** | Transparent usage | Tiered seat-based |
+
+### Value Propositions
+
+#### For Engineering Teams
+> **"Own Your Traffic Infrastructure."**  
+> Self-hosted with <5ms redirect latency. ETS-cached resilience (works even if DB fails). Full data sovereignty.
+
+#### For Growth Teams  
+> **"Attribution Without Abstraction."**  
+> GDPR-compliant analytics with zero cookies. Real-time insights. Privacy-first click tracking without PII storage.
+
+#### For Leadership
+> **"Infrastructure as a Competitive Advantage."**  
+> Treat traffic like the physical asset it is. No vendor lock-in. Privacy compliance built-in. Reduce dependencies.
+
+---
+
+## 3. Voice & Tone Framework
+
+### The Three Pillars
+
+| Pillar | Definition | In Practice |
+|--------|------------|-------------|
+| **Precise** | No ambiguity. Technical accuracy over friendliness. | Use exact terms: "12ms latency" not "super fast" |
+| **Laconic** | Minimum words. Maximum impact. | "Deploy in 60 seconds." not "Our quick and easy setup process..." |
+| **Latency-Obsessed** | Performance is a feature, not a footnote. | Always quantify speed. Show benchmarks. |
+
+### Channel-Specific Voice
+
+#### Marketing Website / Landing Pages
+- **Tone:** Authoritative, Direct, Confident
+- **Sentence Length:** Short. Punchy. Statement-driven.
+- **CTA Style:** Command verbs. No politeness. ("Deploy Now" not "Get Started Today!")
+
+**Example:**
+```
+❌ WEAK: "Qwynk helps teams manage their links better with our easy-to-use platform."
+✅ QWYNK: "Infrastructure-grade link routing. Deploy in 60 seconds. Own your traffic."
+```
+
+#### Documentation
+- **Tone:** Clinical, Instructional, Assumption-Free
+- **Format:** Step-by-step. Code blocks first. Explanations second.
+- **Language:** Terminal commands over UI screenshots.
+
+**Example:**
+```
+❌ WEAK: "First, you'll want to navigate to your dashboard and click on 'Create New Link'..."
+✅ QWYNK: "Create a link:
+$ qwynk create --slug=product --target=https://app.example.com
+Link created. Latency: 8ms."
+```
+
+#### Social Media (Twitter/X, LinkedIn)
+- **Tone:** Provocative, Technical Flex, Anti-SaaS-Speak
+- **Format:** Statement. Metric. Punch line.
+- **Hashtags:** Minimal. Use sparingly.
+
+**Example:**
+```
+❌ WEAK: "We're excited to announce our new dashboard! 🎉 Check it out!"
+✅ QWYNK: "New terminal-style dashboard. 60fps charts. Zero loading states. 
+Traffic is a physical asset. Treat it that way."
+```
+
+#### Error Messages
+- **Tone:** Factual, System-Level, Non-Apologetic
+- **Format:** ERROR_CODE: Technical Description
+
+**Example:**
+```
+❌ WEAK: "Oops! Something went wrong. Please try again."
+✅ QWYNK: "CONN_REFUSED: Target host unreachable. Check firewall rules."
+```
+
+#### Success Messages
+- **Tone:** Operational Confirmation
+- **Format:** ACTION_COMPLETE: Result Metric
+
+**Example:**
+```
+❌ WEAK: "Great! Your link has been created successfully!"
+✅ QWYNK: "LINK_CREATED: /product → https://app.example.com | Latency: 9ms"
+```
+
+#### Email (Transactional)
+- **Subject Lines:** Action-based. No emoji.
+- **Body:** Monospace tables. Technical data. Minimal prose.
+
+**Example Subject Lines:**
+```
+❌ WEAK: "Welcome to Qwynk! Let's get you started 🚀"
+✅ QWYNK: "ACCOUNT_PROVISIONED: qwynk.io/your-workspace"
+```
+
+---
+
+## 4. Messaging Hierarchy
+
+### Primary Message (Elevator Pitch - 15 seconds)
+> "Qwynk is privacy-first, self-hosted link infrastructure. Think Bitly, but GDPR-compliant, <5ms latency, zero vendor lock-in. Built for teams who treat traffic as a physical asset."
+
+### Extended Pitch (30 seconds)
+> "Most link shorteners are SaaS black boxes that track your users, create latency bottlenecks, and risk vendor lock-in. Qwynk runs on your infrastructure—giving you <5ms redirects, GDPR-compliant analytics with zero PII storage, and memorable 'Goblin-Speak' slugs like 'zip-zap'. It's infrastructure, not a service."
+
+### Product Taglines (Context-Specific)
+
+| Context | Tagline |
+|---------|---------|
+| **Homepage Hero** | "Traffic is a physical asset. Own it." |
+| **Documentation Header** | "Infrastructure-grade link routing." |
+| **GitHub README** | "Self-hosted link management with sub-10ms latency." |
+| **Social Bio** | "Bare-metal link infrastructure. No cloud. No abstraction." |
+
+---
+
+## 5. Logo & Identity Usage
+
+### Logo Variations
+Qwynk uses a **wordmark-only logo** with strict typographic rules:
+
+- **Primary Logo:** "QWYNK" set in Space Grotesk Bold (700), tracking -0.025em
+- **Accent Variant:** "QWYNK ///" - with triple slash in Cyan Flux (#2DD4BF)
+- **System Variant:** "QWYNK_SYS" - underscore suffix for technical contexts
+
+### Clear Space Rules
+- **Minimum Clear Space:** 1x the height of the "Q" on all sides
+- **Minimum Size:** 80px width (digital), 20mm width (print)
+
+### Prohibited Modifications
+❌ **NEVER:**
+- Rotate or skew the wordmark
+- Use colors outside the approved palette
+- Stretch or condense the letterforms
+- Place on busy photographic backgrounds
+
+✅ **ALWAYS:**
+- Use on Abyssal Void (#020617) or Deep Hull (#0F172A) backgrounds
+- Maintain proper clear space
+- Use Ice White (#F1F5F9) or Cyan Flux (#2DD4BF) only
+
+### Logo Lockups
+
+```
+PRIMARY:
+QWYNK
+(Ice White on Abyssal Void)
+
+ACCENT:
+QWYNK ///
+(Ice White + Cyan Flux accent)
+
+SYSTEM:
+QWYNK_SYS v1.2.0
+(Full wordmark + version tag, monospace)
+```
+
+---
+
+## 6. Imagery & Photography Guidelines
+
+### Photography Style: "Industrial Precision"
+Qwynk does not use stock photography of smiling people or abstract clouds. When imagery is required:
+
+**Approved Subjects:**
+- Data center server racks (dark, moody, high-contrast)
+- Fiber optic cables (macro, bioluminescent glow)
+- Industrial machinery (hydraulics, actuators, pressure gauges)
+- Terminal interfaces (code, monospace, dark backgrounds)
+
+**Treatment:**
+- High contrast, crushed blacks
+- Desaturate 80%, then add cyan/teal tint
+- No warm tones (avoid orange, yellow, red unless error states)
+- Vignette acceptable if it reinforces depth
+
+**Prohibited:**
+- Generic office/coworking spaces
+- Diverse teams high-fiving
+- Abstract color explosions
+- Nature/organic imagery
+
+### Iconography Style
+- **Style:** Line-based, geometric, 2px stroke weight
+- **Grid:** 24x24px base, align to 4px grid
+- **Color:** Steel Grey (#94A3B8) default, Cyan Flux (#2DD4BF) for active states
+
+---
+
+## 7. Marketing Collateral Specifications
+
+### Social Media Assets
+
+#### Twitter/X
+- **Profile Image:** Qwynk logomark (white on #020617), 400x400px
+- **Header Image:** 1500x500px, dark gradient with terminal snippet overlay
+- **Post Images:** 1200x675px, dark background, minimal text overlay
+
+#### LinkedIn
+- **Company Logo:** 300x300px, same as Twitter
+- **Cover Image:** 1128x191px, system status bar aesthetic
+- **Carousel Posts:** 1080x1080px per slide
+
+### Email Signatures
+
+```
+━━━━━━━━━━━━━━━━━━
+[NAME]
+[TITLE] @ QWYNK
+
+[EMAIL]
+qwynk.io/[workspace]
+━━━━━━━━━━━━━━━━━━
+```
+- **Font:** IBM Plex Mono, 11px, #94A3B8
+- **Divider:** Box-drawing characters (━), Cyan Flux
+- **No logos or images in signature**
+
+### Presentation Templates (16:9)
+
+**Title Slide:**
+- Background: Abyssal Void (#020617)
+- Title: Space Grotesk Bold, 72pt, Ice White
+- Subtitle: IBM Plex Sans, 32pt, Steel Grey
+- Footer: Thin Cyan border, 2px height
+
+**Content Slides:**
+- Max 3 bullet points per slide
+- Use monospace for all metrics/data
+- Code blocks: IBM Plex Mono, syntax highlighting with brand palette
+
+**Charts/Graphs:**
+- Dark background (Deep Hull #0F172A)
+- Data series: Use SERIES_A through SERIES_E colors
+- Grid lines: 1px, Steel Grey with 20% opacity
+
+---
+
+## 8. Typography
 We utilize a **Tri-Type Stack** to strictly separate hierarchy, interface, and raw data.
 
 ### A. Headings (The Voice)
