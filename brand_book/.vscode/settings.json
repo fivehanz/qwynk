@@ -1,0 +1,10 @@
+{
+    "svelte.language-server.runtime": "node",
+    "svelte.language-server.ls-path": "./node_modules/svelte-language-server",
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+    "svelte.plugin.svelte.diagnostics.enable": true,
+    "svelte.plugin.svelte.compilerWarnings": {
+        "a11y-*": "ignore"
+    }
+}
