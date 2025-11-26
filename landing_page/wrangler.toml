@@ -1,0 +1,25 @@
+name = "landing_page"
+main = "dist/_worker.js/index.js"
+compatibility_date = "2025-11-26"
+compatibility_flags = [ "nodejs_compat", "global_fetch_strictly_public" ]
+
+[assets]
+binding = "ASSETS"
+directory = "./dist"
+
+[observability]
+enabled = true
+
+[build]
+command = "yarn build"
+cwd = "."
+watch_dir = "landing_page"
+
+
+[vars]
+NODE_VERSION = "20"
+YARN_VERSION = "1.22.19"
+
+[[routes]]
+pattern = "qwynk.jsmx.org"
+custom_domain = true
