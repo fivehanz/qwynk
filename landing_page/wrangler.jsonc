@@ -12,5 +12,13 @@
 	},
 	"observability": {
     "enabled": true
-  }
+  },
+  "build": {
+    "command": "yarn build",
+    "cwd": ".",
+    "watch_dir": "landing_page"
+  },
+  "node_version": "20",
+  "package_manager": "yarn",
+  "package_manager_version": "1.22.19"
 }
