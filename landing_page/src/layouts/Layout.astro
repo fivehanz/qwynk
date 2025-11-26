@@ -1,0 +1,46 @@
+---
+import { SEO } from "astro-seo";
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = "Qwynk: Infrastructure-grade link routing. Self-hosted, <5ms latency, privacy-first." } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" data-theme="abyssal">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <SEO
+      title={title}
+      description={description}
+      openGraph={{
+        basic: {
+          title: title,
+          type: "website",
+          image: "https://qwynk.io/og-image.jpg", // Placeholder
+        }
+      }}
+      twitter={{
+        creator: "@qwynk_sys"
+      }}
+      extend={{
+        link: [{ rel: "icon", href: "/favicon.svg" }],
+        meta: [
+          { name: "twitter:image", content: "https://qwynk.io/og-image.jpg" },
+          { name: "twitter:title", content: title },
+          { name: "twitter:description", content: description },
+        ],
+      }}
+    />
+  </head>
+  <body class="bg-base-100 text-base-content font-sans antialiased selection:bg-primary selection:text-primary-content">
+    <slot />
+  </body>
+</html>

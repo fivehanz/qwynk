@@ -1,0 +1,93 @@
+/* Fonts */
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/space-grotesk/700.css";
+
+@import "tailwindcss";
+
+@plugin "daisyui" {
+    themes: abyssal --default;
+}
+
+@plugin "daisyui/theme" {
+    name: "abyssal";
+    default: true;
+    --color-base-100: #020617;
+    --color-base-200: #0F172A;
+    --color-base-300: #1E293B;
+    --color-base-content: #F1F5F9;
+    --color-primary: #2DD4BF;
+    --color-primary-content: #020617;
+    --color-secondary: #94A3B8;
+    --color-secondary-content: #020617;
+    --color-neutral: #1E293B;
+    --color-neutral-content: #94A3B8;
+    --color-error: #F87171;
+    --color-error-content: #020617;
+    --color-success: #2DD4BF;
+    --color-warning: #FBBF24;
+    --color-info: #38BDF8;
+    --radius-selector: 0rem;
+    --radius-field: 0rem;
+    --radius-box: 0rem;
+    --radius-btn: 0rem;
+    --border-btn: 1px;
+    --border-input: 1px;
+}
+
+@theme {
+    --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+    --font-heading: "Space Grotesk", sans-serif;
+
+    --ease-hydraulic: cubic-bezier(0.19, 1, 0.22, 1);
+    --ease-data-out: ease-out;
+
+    --duration-instant: 0ms;
+    --duration-ui: 120ms;
+    --duration-system: 200ms;
+    --duration-data: 320ms;
+
+    --spacing-4-5: 1.125rem;
+}
+
+@utility font-heading {
+    font-family: var(--font-heading);
+    letter-spacing: -0.025em;
+    font-weight: 700;
+}
+
+@utility glass-panel {
+    @apply border border-base-300 bg-base-200/50 backdrop-blur-md;
+}
+
+@layer base {
+
+    button,
+    a,
+    .btn {
+        @apply transition-all;
+        transition-duration: var(--duration-ui);
+        transition-timing-function: var(--ease-hydraulic);
+    }
+}
+
+@keyframes blink {
+
+    0%,
+    49% {
+        opacity: 1;
+    }
+
+    50%,
+    100% {
+        opacity: 0;
+    }
+}
+
+.animate-blink {
+    animation: blink 1s step-end infinite;
+}
