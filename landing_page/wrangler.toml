@@ -16,10 +16,6 @@ cwd = "."
 watch_dir = "landing_page"
 
 
-[vars]
-NODE_VERSION = "20"
-YARN_VERSION = "1.22.19"
-
 [[routes]]
 pattern = "qwynk.jsmx.org"
 custom_domain = true
