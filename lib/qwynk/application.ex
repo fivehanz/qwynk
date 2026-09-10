@@ -9,6 +9,7 @@ defmodule Qwynk.Application do
   def start(_type, _args) do
     # Owned by the application master process, so it lives as long as the app.
     Qwynk.Traffic.Cache.init()
+    Qwynk.Analytics.Geo.load(Application.get_env(:qwynk, :geoip_path))
 
     children = [
       QwynkWeb.Telemetry,

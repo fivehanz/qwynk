@@ -122,3 +122,8 @@ if config_env() == :prod do
   #
   # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
 end
+
+# Optional MaxMind City database. Without it, `country` is simply nil.
+config :qwynk,
+  geoip_path:
+    System.get_env("GEOIP_PATH") || Path.join(:code.priv_dir(:qwynk), "geoip/GeoLite2-City.mmdb")
