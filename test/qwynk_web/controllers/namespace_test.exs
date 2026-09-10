@@ -8,10 +8,10 @@ defmodule QwynkWeb.NamespaceTest do
   test "register and reset are prefixed exactly once", %{conn: conn} do
     assert html_response(get(conn, "/_/register"), 200)
     assert html_response(get(conn, "/_/reset"), 200)
-    assert_error_sent 404, fn -> get(conn, "/_/_/register") end
+    assert get(conn, "/_/_/register").status == 404
   end
 
   test "the root namespace does not serve auth routes", %{conn: conn} do
-    assert_error_sent 404, fn -> get(conn, "/sign-in") end
+    assert get(conn, "/sign-in").status == 404
   end
 end
