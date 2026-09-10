@@ -7,6 +7,7 @@ defmodule QwynkWeb.RedirectControllerTest do
 
   setup do
     Cache.init()
+    reset_analytics()
     user = user_fixture()
     link = link_fixture(user)
     Cache.delete(link.slug)
@@ -55,5 +56,36 @@ defmodule QwynkWeb.RedirectControllerTest do
 
   test "the redirect route does not shadow the reserved namespace", %{conn: conn} do
     assert html_response(get(conn, "/_/sign-in"), 200)
+  end
+
+  test "a redirect logs exactly one hit carrying the cached link_id", %{conn: conn, link: link} do
+    get(conn, "/#{link.slug}")
+    drain_analytics()
+
+    assert [hit] = Qwynk.Analytics.list_hits!(authorize?: false)
+    assert hit.link_id == link.id
+    assert hit.visitor_hash != nil
+  end
+
+  test "a cache hit still logs, and logs no PII", %{conn: conn, link: link} do
+    get(conn, "/#{link.slug}")
+
+    build_conn()
+    |> put_req_header("referer", "https://news.example.com/x?secret=1")
+    |> get("/#{link.slug}")
+
+    drain_analytics()
+
+    hits = Qwynk.Analytics.list_hits!(authorize?: false)
+    assert length(hits) == 2
+    assert "news.example.com" in Enum.map(hits, & &1.referrer_domain)
+    refute Enum.any?(hits, &(&1.referrer_domain && &1.referrer_domain =~ "secret"))
+  end
+
+  test "a 404 logs nothing", %{conn: conn} do
+    get(conn, "/nope-nope")
+    drain_analytics()
+
+    assert Qwynk.Analytics.list_hits!(authorize?: false) == []
   end
 end

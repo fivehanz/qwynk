@@ -14,6 +14,7 @@ defmodule Qwynk.Application do
     children = [
       QwynkWeb.Telemetry,
       Qwynk.Repo,
+      {Qwynk.Analytics.Buffer, Application.get_env(:qwynk, Qwynk.Analytics.Buffer, [])},
       {DNSCluster, query: Application.get_env(:qwynk, :dns_cluster_query) || :ignore},
       {Task.Supervisor, name: Qwynk.TaskSupervisor},
       {Phoenix.PubSub, name: Qwynk.PubSub},

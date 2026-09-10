@@ -38,3 +38,6 @@ config :phoenix, :plug_init_mode, :runtime
 # Enable helpful, but potentially expensive runtime checks
 config :phoenix_live_view,
   enable_expensive_runtime_checks: true
+
+# Tests drive flushing explicitly.
+config :qwynk, Qwynk.Analytics.Buffer, flush_interval: :infinity

@@ -24,10 +24,38 @@ defmodule QwynkWeb.RedirectController do
   end
 
   defp send_redirect(conn, entry, cache_state) do
+    log_hit(conn, entry)
+
     conn
     |> put_resp_header("x-qwynk-cache", cache_state)
     |> put_status(status(entry.strategy))
     |> redirect(external: entry.destination)
+  end
+
+  # Enrichment runs off the request process: on an ETS hit the hot path touches
+  # neither PostgreSQL nor the GeoIP database (AGENTS.md rules 1-3).
+  defp log_hit(conn, entry) do
+    raw = %{
+      link_id: entry.link_id,
+      ip: client_ip(conn),
+      user_agent: conn |> get_req_header("user-agent") |> List.first(),
+      referrer: conn |> get_req_header("referer") |> List.first()
+    }
+
+    Task.Supervisor.start_child(Qwynk.TaskSupervisor, fn ->
+      Qwynk.Analytics.Buffer.enrich_and_record(raw)
+    end)
+
+    conn
+  end
+
+  # x-forwarded-for is trusted because OpenResty fronts the app and the app is
+  # not directly reachable (PRD 2).
+  defp client_ip(conn) do
+    case get_req_header(conn, "x-forwarded-for") do
+      [value | _] -> value |> String.split(",") |> List.first() |> String.trim()
+      [] -> conn.remote_ip |> :inet.ntoa() |> to_string()
+    end
   end
 
   defp status(:permanent), do: 301
