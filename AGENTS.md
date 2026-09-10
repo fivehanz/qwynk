@@ -62,12 +62,22 @@ guarantee in PRD.md, and most are guarded by a test that must not be deleted.
 8. Never introduce Redis without explicit approval.
 9. Never introduce a background-job framework for analytics or token cleanup.
 10. Preserve FreeBSD compatibility: standard Mix, no Docker, no C NIF dependencies.
+11. Slugs are unique per domain, never globally. The cache key is `{host, slug}`
+    and `resolve` takes both; anything keyed on slug alone is a bug.
+12. A bare domain root defaults to 404. Never make `/` redirect to sign-in — it
+    advertises the admin panel on every customer domain.
 
 Two consequences of these rules that are easy to trip over:
 
 - `config/config.exs` sets `default_actions_require_atomic?: true`. Any update
   action carrying an `after_action` hook (rule 7) needs `require_atomic? false`
   or Ash raises at compile time.
+- An Ash policy block whose condition matches must pass. A catch-all
+  `policy always()` alongside a permissive read policy forbids reads, because
+  both apply. Scope write policies to `action_type([:create, :update, :destroy])`.
+- `user_fixture/1` forces `role: :user`: inside a test transaction the users
+  table starts empty, so the bootstrap change would silently make the first
+  fixture a superadmin and defeat owner-scoping assertions.
 - AshAuthentication resolves `register_path`/`reset_path` through
   `Phoenix.Router.scoped_path/2` *and* defines the route inside the enclosing
   scope. Keep the auth macros in the root scope with explicit `/_/` paths;

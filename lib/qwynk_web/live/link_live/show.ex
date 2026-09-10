@@ -7,7 +7,7 @@ defmodule QwynkWeb.LinkLive.Show do
   @impl true
   def mount(%{"id" => id}, _session, socket) do
     # Ownership is the policy's job: a foreign link raises here.
-    link = Qwynk.Traffic.get_link!(id, actor: socket.assigns.current_user)
+    link = Qwynk.Traffic.get_link!(id, actor: socket.assigns.current_user, load: [:domain])
     rows = Qwynk.Analytics.stats(link.id, 30)
 
     {:ok,
@@ -20,12 +20,12 @@ defmodule QwynkWeb.LinkLive.Show do
      |> assign(:uniques, Enum.sum(Enum.map(rows, & &1.uniques)))}
   end
 
-  defp short_url(slug), do: QwynkWeb.Endpoint.url() <> "/" <> slug
+  defp short_url(link), do: QwynkWeb.Rail.link_url(link)
 
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} active={:links} rail={@rail}>
+    <Layouts.app flash={@flash} active={:links} rail={@rail} role={@current_user.role}>
       <.link
         navigate={~p"/_/app/links"}
         class="inline-flex items-center gap-1 text-sm text-secondary hover:text-primary"
@@ -35,7 +35,9 @@ defmodule QwynkWeb.LinkLive.Show do
 
       <div class="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div class="min-w-0">
-          <h1 class="font-mono text-2xl text-primary sm:text-3xl">/{@link.slug}</h1>
+          <h1 class="font-mono text-2xl text-primary sm:text-3xl">
+            <span class="text-secondary">{@link.domain.host}</span>/{@link.slug}
+          </h1>
           <p class="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 break-all font-mono text-xs text-secondary">
             <.icon name="hero-arrow-long-right" class="size-3.5 shrink-0" />
             <a href={@link.destination} rel="noreferrer nofollow" class="hover:text-base-content">
@@ -48,7 +50,7 @@ defmodule QwynkWeb.LinkLive.Show do
           type="button"
           id={"copy-#{@link.id}"}
           phx-hook="Copy"
-          data-copy={short_url(@link.slug)}
+          data-copy={short_url(@link)}
           class="shrink-0 border border-base-300 px-3 py-1.5 text-sm text-secondary hover:border-primary hover:text-primary data-[copied]:border-primary data-[copied]:text-primary"
         >
           <span data-copy-label>copy link</span>

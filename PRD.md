@@ -49,11 +49,31 @@ cache, a GenServer for the buffer, `Task.Supervisor` for async dispatch.
 ### 3.1 The Routing Engine (The "Razor")
 To eliminate lookup overhead, the Router differentiates administrative traffic
 from redirect traffic immediately.
-* **Namespace `/_/`**: Reserved for System Internals (Admin, Auth, Dev tools).
+* **Namespace `/_/`**: Reserved for System Internals (Admin, Auth, Console, Dev
+  tools). Reachable on every host.
 * **Namespace `/:slug`**: All other single-segment requests are treated as Slugs.
+* **Root `/`**: resolved per domain — see below.
 
 A single segment, not `/*path`: with `/_/` reserved there is nothing a catch-all
 would buy, and it would swallow multi-segment paths that should 404.
+
+**Several domains may point at one server.** The `Host` header selects a
+`Domain`, and slugs are unique *per domain* — `acme.com/launch` and
+`beta.io/launch` are different links. An unknown or deactivated host 404s
+everything.
+
+```
+GET <host>/         → unknown or inactive host  → 404
+                    → root_url set              → 302 to root_url
+                    → root_url null (default)   → 404
+
+GET <host>/:slug    → resolved within that host's domain, else 404
+GET <host>/_/…      → admin, on any host
+```
+
+The root path defaults to 404 rather than redirecting to sign-in: a bare link
+domain should not advertise that an admin panel exists. A superadmin can point
+it somewhere from the console.
 
 ### 3.2 The Hot Path (Redirect Flow)
 Latency Budget: < 5ms (Internal Processing).
@@ -123,6 +143,20 @@ HTTP request ──► IP, User-Agent, Referrer   (request memory only)
 
 ## 4. UI/UX Requirements
 
+### 4.0 Roles
+
+| Role | Links | Domains | Users |
+| :--- | :--- | :--- | :--- |
+| `user` | own only | read | — |
+| `admin` | all | read | — |
+| `superadmin` | all | manage | manage roles |
+
+The first account to register becomes `superadmin`; without that nobody could
+reach the console on a fresh install. Nobody may change their own role,
+including a superadmin, so the lowest-privilege account cannot escalate and the
+last superadmin cannot lock everyone out. An install that predates roles uses
+`mix qwynk.grant_role <email> superadmin`.
+
 ### 4.1 Admin (`/_/app`)
 * **Design System:** DaisyUI v5 (Dark Mode), hand-written Tailwind components.
 * **Routes:**
@@ -131,6 +165,8 @@ HTTP request ──► IP, User-Agent, Referrer   (request memory only)
     * `/_/app/links` — list, search, create, edit, disable, copy-to-clipboard
     * `/_/app/links/:id` — destination, slug, status, created, clicks, uniques, 30-day chart
     * `/_/app/settings` — account
+    * `/_/admin` — superadmin console: domains and their root behaviour
+    * `/_/admin/users` — superadmin console: roles
 * Links are owner-scoped: a user sees only their own, enforced by Ash policy
   rather than by filtering in the LiveView.
 * **Interactions:** All state changes use LiveView. No full page reloads.

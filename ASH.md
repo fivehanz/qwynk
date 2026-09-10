@@ -3,6 +3,26 @@
 ## 1. Domain: Traffic
 **Purpose:** Manages the core redirection logic and link assets.
 
+### Resource: `Domain`
+* **Persistence:** PostgreSQL Table `domains`
+* **Purpose:** A hostname pointed at this server. Operator-level, not user-owned.
+
+| Name | Type | Notes |
+| :--- | :--- | :--- |
+| `host` | String | Unique. Normalized to a bare lowercase hostname on write. |
+| `root_url` | String | Nullable. **Null means the root path 404s** — the default. |
+| `is_active` | Boolean | Default true. Inactive → every path on it 404s. |
+
+Reads are open: the redirect path resolves domains with no actor at all, and a
+user must see the host their own link lives on. Writes are superadmin-only.
+That policy is deliberately scoped to `[:create, :update, :destroy]` rather than
+`always()` — every policy whose condition matches has to pass, so a catch-all
+would forbid the reads the read policy allows.
+
+Deleting a domain that still holds links is refused; deactivate instead.
+Domain writes evict that host's cached entries, old host and new, since a
+rename moves the cache key.
+
 ### Resource: `Link`
 * **Persistence:** PostgreSQL Table `links`
 * **Type:** Persistent
@@ -17,6 +37,7 @@
 | `slug` | String | Min: 3, Max: 64, Regex: `^[a-z0-9-]+$` | generated | The public identifier. |
 | `destination` | String | URL format | - | The target URL. |
 | `owner_id` | UUID | References `User`, not null | - | Set by `relate_actor(:owner)`. |
+| `domain_id` | UUID | References `Domain`, not null | - | Which host this link lives on. |
 | `is_active` | Boolean | - | `true` | Soft delete toggle. |
 | `strategy` | Atom | One of: `:permanent`, `:temporary` | `:temporary` | `:permanent` → 301, `:temporary` → 302. |
 | `inserted_at`| UTC | - | Auto | |
@@ -24,6 +45,10 @@
 
 > `strategy` is **not** `:301` / `:302`. Those are not valid Elixir atoms — an
 > atom literal cannot begin with a digit.
+
+> **Identity is `[:domain_id, :slug]`, not `[:slug]`.** Two customers on two
+> domains must be able to hold the same slug. This is why the ETS cache is keyed
+> `{host, slug}` and `resolve` takes both.
 
 #### Actions
 1.  **Action: `create`**
@@ -36,8 +61,8 @@
       birthday collisions reach ~50% near 1,000 links; retrying once is not enough.
       A caller-supplied slug is never retried — the conflict is returned.
 2.  **Action: `resolve` (Read)**
-    * *Argument:* `slug`
-    * *Filter:* `slug == ^arg(:slug) and is_active == true`
+    * *Arguments:* `slug`, `domain_id`
+    * *Filter:* `slug == ^arg(:slug) and domain_id == ^arg(:domain_id) and is_active == true`
     * *Policy:* `authorize_if always()`. A public redirect has no actor. Every
       other action on this resource is owner-scoped.
     * *Optimization:* Postgres index scan on `slug`. This is the "Source of
@@ -122,6 +147,11 @@ privacy guarantee, and a schema-level test asserts it.
 ## 3. Domain: Accounts
 **Purpose:** Authentication and System Access.
 **Library:** managed by `ash_authentication` (password, magic link, API key).
+
+`User.role` is one of `:superadmin`, `:admin`, `:user`, defaulting to `:user`.
+The first account registered is promoted by `Changes.BootstrapSuperadmin`.
+`set_role` is superadmin-only and carries `Changes.ProtectOwnRole`, which
+refuses a change to the actor's own account.
 
 > `Token.expunge_expired` is currently unscheduled — removing Oban removed the
 > only thing that ran it. Expired token rows accumulate harmlessly at this

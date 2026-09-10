@@ -1,13 +1,22 @@
 defmodule Qwynk.Traffic do
   use Ash.Domain, otp_app: :qwynk
 
-  alias Qwynk.Traffic.{Link, SlugGenerator}
+  alias Qwynk.Traffic.{Domain, Link, SlugGenerator}
 
   resources do
+    resource Domain do
+      define :get_domain, action: :read, get_by: [:id]
+      define :list_domains, action: :read
+      define :domain_by_host, action: :by_host, args: [:host]
+      define :create_domain, action: :create
+      define :update_domain, action: :update
+      define :destroy_domain, action: :destroy
+    end
+
     resource Link do
       define :get_link, action: :read, get_by: [:id]
       define :list_links, action: :read
-      define :resolve, action: :resolve, args: [:slug]
+      define :resolve, action: :resolve, args: [:slug, :domain_id]
       define :insert_link, action: :create
       define :update_link, action: :update
       define :disable_link, action: :disable

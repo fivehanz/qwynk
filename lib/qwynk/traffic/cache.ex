@@ -1,42 +1,68 @@
 defmodule Qwynk.Traffic.Cache do
   @moduledoc """
-  Read-through ETS cache for the redirect hot path.
+  Read-through ETS caches for the redirect hot path.
 
-  The stored entry carries `link_id` so the analytics path never needs a second
-  lookup (AGENTS.md rule 6). TTL is a safety net only — mutations invalidate
-  explicitly via `Qwynk.Traffic.Changes.InvalidateCache` (rule 7).
+  Two tables, both created in `Qwynk.Application.start/2` so the application
+  master owns them and they live as long as the app, and both `:public` because
+  the request process writes on a miss.
 
-  The table is `:public` because the request process writes to it on a miss, and
-  it is created in `Qwynk.Application.start/2` so the application master owns it
-  and it lives as long as the app.
+  * `:qwynk_cache` — `{{host, slug}, entry, expires_at}`. Keyed by host as well
+    as slug because slugs are unique *per domain*: `acme.com/launch` and
+    `beta.io/launch` are different links.
+  * `:qwynk_domains` — `{host, domain_or_nil, expires_at}`. Domains are few and
+    change rarely; caching them keeps the hot path to at most one Postgres
+    query on a miss instead of two. Misses are cached too, so an unknown Host
+    header cannot be used to hammer the database.
   """
 
   @table :qwynk_cache
+  @domains :qwynk_domains
   @ttl_ms :timer.minutes(10)
+  @domain_ttl_ms :timer.minutes(5)
 
   @type entry :: %{link_id: binary(), destination: binary(), strategy: :permanent | :temporary}
 
-  @doc "Creates the table. Idempotent, so tests may call it repeatedly."
+  @doc "Creates both tables. Idempotent, so tests may call it repeatedly."
   def init do
-    :ets.new(@table, [:named_table, :set, :public, read_concurrency: true])
+    new(@table)
+    new(@domains)
+    :ok
+  end
+
+  defp new(name) do
+    :ets.new(name, [:named_table, :set, :public, read_concurrency: true])
   rescue
-    ArgumentError -> @table
+    ArgumentError -> name
+  end
+
+  @doc """
+  Empties both tables.
+
+  For tests: ETS is not covered by the SQL sandbox, so rows cached in one test
+  outlive the transaction that created them and would resolve to ids that no
+  longer exist.
+  """
+  def flush do
+    :ets.delete_all_objects(@table)
+    :ets.delete_all_objects(@domains)
+    :ok
   end
 
   @spec entry(struct()) :: entry()
   def entry(link),
     do: %{link_id: link.id, destination: link.destination, strategy: link.strategy}
 
-  @spec fetch(binary()) :: {:hit, entry()} | :miss
-  def fetch(slug) do
-    now = System.monotonic_time(:millisecond)
+  @spec fetch(binary(), binary()) :: {:hit, entry()} | :miss
+  def fetch(host, slug) do
+    key = {host, slug}
+    now = now()
 
-    case :ets.lookup(@table, slug) do
-      [{^slug, entry, expires_at}] when expires_at > now ->
+    case :ets.lookup(@table, key) do
+      [{^key, entry, expires_at}] when expires_at > now ->
         {:hit, entry}
 
-      [{^slug, _entry, _expired}] ->
-        delete(slug)
+      [{^key, _entry, _expired}] ->
+        :ets.delete(@table, key)
         :miss
 
       [] ->
@@ -44,12 +70,52 @@ defmodule Qwynk.Traffic.Cache do
     end
   end
 
-  @spec put(binary(), entry(), integer()) :: entry()
-  def put(slug, entry, ttl_ms \\ @ttl_ms) do
-    :ets.insert(@table, {slug, entry, System.monotonic_time(:millisecond) + ttl_ms})
+  @spec put(binary(), binary(), entry(), integer()) :: entry()
+  def put(host, slug, entry, ttl_ms \\ @ttl_ms) do
+    :ets.insert(@table, {{host, slug}, entry, now() + ttl_ms})
     entry
   end
 
-  @spec delete(binary()) :: true
-  def delete(slug), do: :ets.delete(@table, slug)
+  @spec delete(binary(), binary()) :: true
+  def delete(host, slug), do: :ets.delete(@table, {host, slug})
+
+  @doc "Evicts every cached slug on `host`, plus the host's own domain entry."
+  def delete_domain(nil), do: true
+
+  def delete_domain(host) do
+    :ets.match_delete(@table, {{host, :_}, :_, :_})
+    :ets.delete(@domains, host)
+    true
+  end
+
+  @doc """
+  Resolves a Host header to a domain, `nil` when there is no active match.
+
+  Negative results are cached as well, so an unknown host is one query per TTL
+  rather than one per request.
+  """
+  @spec domain(binary()) :: {:ok, struct()} | :unknown
+  def domain(host) do
+    now = now()
+
+    case :ets.lookup(@domains, host) do
+      [{^host, cached, expires_at}] when expires_at > now ->
+        wrap(cached)
+
+      _ ->
+        loaded =
+          case Qwynk.Traffic.domain_by_host(host, authorize?: false) do
+            {:ok, domain} -> domain
+            {:error, _} -> nil
+          end
+
+        :ets.insert(@domains, {host, loaded, now + @domain_ttl_ms})
+        wrap(loaded)
+    end
+  end
+
+  defp wrap(nil), do: :unknown
+  defp wrap(domain), do: {:ok, domain}
+
+  defp now, do: System.monotonic_time(:millisecond)
 end

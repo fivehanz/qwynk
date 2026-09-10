@@ -13,7 +13,8 @@ defmodule Qwynk.Traffic.Changes.InvalidateCache do
   @impl true
   def change(changeset, _opts, _context) do
     Ash.Changeset.after_action(changeset, fn _changeset, record ->
-      Qwynk.Traffic.Cache.delete(record.slug)
+      record = Ash.load!(record, :domain, authorize?: false)
+      Qwynk.Traffic.Cache.delete(record.domain.host, record.slug)
       {:ok, record}
     end)
   end

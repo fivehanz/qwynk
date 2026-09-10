@@ -39,6 +39,8 @@ defmodule QwynkWeb.Layouts do
     default: nil,
     doc: "system readout for the status rail: %{links:, clicks:, cache:}"
 
+  attr :role, :atom, default: nil, doc: "current user's role; gates the console link"
+
   slot :inner_block, required: true
 
   def app(assigns) do
@@ -60,6 +62,13 @@ defmodule QwynkWeb.Layouts do
           <.nav_link navigate={~p"/_/app/links"} active={@active == :links}>Links</.nav_link>
           <.nav_link navigate={~p"/_/app/settings"} active={@active == :settings}>
             Settings
+          </.nav_link>
+          <.nav_link
+            :if={@role == :superadmin}
+            navigate={~p"/_/admin"}
+            active={@active == :admin}
+          >
+            Console
           </.nav_link>
         </nav>
 

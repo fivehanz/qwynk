@@ -33,12 +33,6 @@ defmodule QwynkWeb.Router do
     plug :put_secure_browser_headers
   end
 
-  scope "/", QwynkWeb do
-    pipe_through :browser
-
-    get "/", PageController, :home
-  end
-
   # `/_/` is reserved for system internals so that `/:slug` can own everything
   # else (PRD 3.1). These live in the root scope with explicit `/_/` paths:
   # AshAuthentication resolves `register_path`/`reset_path` through
@@ -62,6 +56,10 @@ defmodule QwynkWeb.Router do
       live "/_/app/links", LinkLive.Index, :index
       live "/_/app/links/:id", LinkLive.Show, :show
       live "/_/app/settings", SettingsLive
+
+      # Superadmin console. The mount hook is the gate; the route is not secret.
+      live "/_/admin", AdminLive.Domains
+      live "/_/admin/users", AdminLive.Users
     end
 
     auth_routes AuthController, Qwynk.Accounts.User, path: "/_/auth"
@@ -114,6 +112,7 @@ defmodule QwynkWeb.Router do
   scope "/", QwynkWeb do
     pipe_through :redirect_path
 
+    get "/", RedirectController, :root
     get "/:slug", RedirectController, :show
   end
 end

@@ -21,7 +21,7 @@ defmodule QwynkWeb.AuthOverrides do
 
   override AshAuthentication.Phoenix.Components.Banner do
     set :root_class, "mb-5 flex flex-col items-center"
-    set :href_url, "/"
+    set :href_url, "/_/sign-in"
     set :href_class, "flex items-center gap-2"
     set :image_url, nil
     set :dark_image_url, nil

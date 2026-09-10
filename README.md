@@ -21,20 +21,34 @@ dispatch.
 ## Directory Structure
 * `lib/qwynk/traffic/` — link management, slug logic, ETS cache
 * `lib/qwynk/analytics/` — hit logging, enrichment, GeoIP, buffer
-* `lib/qwynk/accounts/` — user auth
+* `lib/qwynk/accounts/` — user auth and roles
 * `lib/qwynk_web/` — router, redirect controller, admin LiveViews
 * `landing_page/` — Astro marketing site (deployed separately to Cloudflare)
 * `brand_book/` — SvelteKit brand reference
 
 ## Architecture
 
-1.  **The Bouncer:** incoming traffic hits the Phoenix Endpoint. `/_/` is
-    reserved for internals; everything else is a slug.
+1.  **The Bouncer:** incoming traffic hits the Phoenix Endpoint. The `Host`
+    header picks a domain, `/_/` is reserved for internals on every host, and
+    everything else is a slug within that domain. A bare domain root returns
+    404 unless a superadmin points it somewhere.
 2.  **The Cache:** lookups happen in RAM (ETS). The cached entry carries
     `link_id` so analytics never needs a second lookup.
 3.  **The Vault:** persistent data lives in Postgres, managed by Ash resources.
 4.  **The Ledger:** analytics are anonymized *before* buffering, then bulk
     inserted. Raw IP and User-Agent never leave the request.
+
+## First run
+
+The first account to register becomes the superadmin. Sign up at `/_/register`,
+then add your hostnames under `/_/admin` — until a host is listed, every request
+to it returns 404, including links.
+
+Upgrading an install that predates roles:
+
+```bash
+mix qwynk.grant_role you@example.com superadmin
+```
 
 ## Prerequisites (FreeBSD)
 * Elixir 1.18+ & Erlang/OTP 26+ (see `mise.toml`)

@@ -40,7 +40,7 @@ defmodule QwynkWeb.DashboardLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} active={:dashboard} rail={@rail}>
+    <Layouts.app flash={@flash} active={:dashboard} rail={@rail} role={@current_user.role}>
       <h1 class="font-heading text-2xl">Dashboard</h1>
 
       <%!-- The instrument strip: one aligned readout, not a grid of cards. --%>

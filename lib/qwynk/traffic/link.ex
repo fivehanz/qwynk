@@ -18,7 +18,7 @@ defmodule Qwynk.Traffic.Link do
 
     create :create do
       primary? true
-      accept [:destination, :slug, :strategy]
+      accept [:destination, :slug, :strategy, :domain_id]
       change relate_actor(:owner)
       change Qwynk.Traffic.Changes.EnsureSlug
     end
@@ -26,7 +26,9 @@ defmodule Qwynk.Traffic.Link do
     read :resolve do
       get? true
       argument :slug, :string, allow_nil?: false
-      filter expr(slug == ^arg(:slug) and is_active == true)
+      argument :domain_id, :uuid, allow_nil?: false
+
+      filter expr(slug == ^arg(:slug) and domain_id == ^arg(:domain_id) and is_active == true)
     end
 
     update :update do
@@ -53,12 +55,14 @@ defmodule Qwynk.Traffic.Link do
   end
 
   policies do
-    # A public redirect has no actor. Every other action is owner-scoped.
+    # A public redirect has no actor. Every other action is owner-scoped,
+    # except that staff can see and manage everything.
     policy action(:resolve) do
       authorize_if always()
     end
 
     policy always() do
+      authorize_if expr(^actor(:role) in [:superadmin, :admin])
       authorize_if relates_to_actor_via(:owner)
     end
   end
@@ -89,9 +93,11 @@ defmodule Qwynk.Traffic.Link do
 
   relationships do
     belongs_to :owner, Qwynk.Accounts.User, allow_nil?: false, public?: true
+    belongs_to :domain, Qwynk.Traffic.Domain, allow_nil?: false, public?: true
   end
 
   identities do
-    identity :unique_slug, [:slug]
+    # Per domain, not global: two customers must be able to hold the same slug.
+    identity :unique_slug_per_domain, [:domain_id, :slug]
   end
 end

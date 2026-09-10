@@ -20,6 +20,7 @@ defmodule QwynkWeb.LinkLive.Index do
      |> assign(:query, "")
      |> assign(:form, nil)
      |> assign(:mode, nil)
+     |> assign(:domains, active_domains())
      |> load_links()}
   end
 
@@ -38,7 +39,10 @@ defmodule QwynkWeb.LinkLive.Index do
       |> AshPhoenix.Form.for_create(:create, actor: socket.assigns.current_user)
       |> to_form()
 
-    {:noreply, socket |> assign(form: form, mode: :create, suggested: SlugGenerator.generate())}
+    {:noreply,
+     socket
+     |> assign(form: form, mode: :create, suggested: SlugGenerator.generate())
+     |> assign(:prefix, default_prefix(socket.assigns.domains))}
   end
 
   def handle_event("edit", %{"id" => id}, socket) do
@@ -49,7 +53,12 @@ defmodule QwynkWeb.LinkLive.Index do
       |> AshPhoenix.Form.for_update(:update, actor: socket.assigns.current_user)
       |> to_form()
 
-    {:noreply, socket |> assign(form: form, mode: :edit, suggested: link.slug)}
+    link = Ash.load!(link, :domain, authorize?: false)
+
+    {:noreply,
+     socket
+     |> assign(form: form, mode: :edit, suggested: link.slug)
+     |> assign(:prefix, link.domain.host)}
   end
 
   def handle_event("cancel", _params, socket),
@@ -99,7 +108,11 @@ defmodule QwynkWeb.LinkLive.Index do
   # Creates route through Traffic.create_link/2 so they inherit the bounded slug
   # retry; AshPhoenix.Form.submit would call the action directly and lose it.
   defp save(:create, _form, params, user) do
-    %{destination: params["destination"], strategy: strategy(params["strategy"])}
+    %{
+      destination: params["destination"],
+      strategy: strategy(params["strategy"]),
+      domain_id: params["domain_id"]
+    }
     |> maybe_put_slug(params["slug"])
     |> Traffic.create_link(actor: user)
   end
@@ -111,6 +124,9 @@ defmodule QwynkWeb.LinkLive.Index do
 
   defp maybe_put_slug(attrs, _slug), do: attrs
 
+  defp default_prefix([]), do: "—"
+  defp default_prefix([domain | _]), do: domain.host
+
   defp strategy("permanent"), do: :permanent
   defp strategy(_), do: :temporary
 
@@ -119,8 +135,14 @@ defmodule QwynkWeb.LinkLive.Index do
 
   defp message(_), do: "Could not save that link."
 
+  defp active_domains do
+    Qwynk.Traffic.list_domains!(authorize?: false)
+    |> Enum.filter(& &1.is_active)
+    |> Enum.sort_by(& &1.host)
+  end
+
   defp load_links(socket) do
-    all = Traffic.list_links!(actor: socket.assigns.current_user)
+    all = Traffic.list_links!(actor: socket.assigns.current_user, load: [:domain])
 
     socket
     |> assign(:total_count, length(all))
@@ -142,17 +164,19 @@ defmodule QwynkWeb.LinkLive.Index do
     end)
   end
 
-  defp short_url(slug), do: QwynkWeb.Endpoint.url() <> "/" <> slug
+  # The link's own domain, not the endpoint's: a link on acme.com must copy as
+  # acme.com even when the console is being used from somewhere else.
+  defp short_url(link), do: QwynkWeb.Rail.link_url(link)
 
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} active={:links} rail={@rail}>
+    <Layouts.app flash={@flash} active={:links} rail={@rail} role={@current_user.role}>
       <div class="flex flex-wrap items-center justify-between gap-4">
         <h1 class="font-heading text-2xl">Links</h1>
 
         <button
-          :if={is_nil(@form)}
+          :if={is_nil(@form) and @domains != []}
           type="button"
           phx-click="new"
           class="border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-primary-content hover:bg-primary/90"
@@ -161,7 +185,25 @@ defmodule QwynkWeb.LinkLive.Index do
         </button>
       </div>
 
-      <.link_form :if={@form} form={@form} mode={@mode} suggested={@suggested} />
+      <div
+        :if={@domains == []}
+        class="mt-6 border border-warning/40 bg-base-200/40 p-4 text-sm text-secondary"
+      >
+        No active domains, so there is nowhere to put a link yet.
+        <.link :if={@current_user.role == :superadmin} navigate={~p"/_/admin"} class="text-primary">
+          Add one in the console.
+        </.link>
+        <span :if={@current_user.role != :superadmin}>Ask an administrator to add one.</span>
+      </div>
+
+      <.link_form
+        :if={@form}
+        form={@form}
+        mode={@mode}
+        suggested={@suggested}
+        prefix={@prefix}
+        domains={@domains}
+      />
 
       <form :if={@total_count > 0} phx-change="search" phx-submit="search" class="mt-6">
         <label for="query" class="sr-only">Search links</label>
@@ -199,7 +241,7 @@ defmodule QwynkWeb.LinkLive.Index do
                     if(link.is_active, do: "text-primary", else: "text-secondary line-through")
                   ]}
                 >
-                  /{link.slug}
+                  <span :if={length(@domains) > 1} class="text-secondary">{link.domain.host}</span>/{link.slug}
                 </.link>
                 <span
                   :if={!link.is_active}
@@ -228,7 +270,7 @@ defmodule QwynkWeb.LinkLive.Index do
                 type="button"
                 id={"copy-#{link.id}"}
                 phx-hook="Copy"
-                data-copy={short_url(link.slug)}
+                data-copy={short_url(link)}
                 class="border border-base-300 px-2 py-1 text-secondary hover:border-primary hover:text-primary data-[copied]:border-primary data-[copied]:text-primary"
               >
                 <span data-copy-label>copy</span>
@@ -267,7 +309,7 @@ defmodule QwynkWeb.LinkLive.Index do
           slug blank and Qwynk generates a memorable one like <span class="font-mono text-base-content">zip-zap</span>.
         </p>
         <button
-          :if={is_nil(@form)}
+          :if={is_nil(@form) and @domains != []}
           type="button"
           phx-click="new"
           class="mt-6 border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-primary-content hover:bg-primary/90"
@@ -300,6 +342,8 @@ defmodule QwynkWeb.LinkLive.Index do
   attr :form, :any, required: true
   attr :mode, :atom, required: true
   attr :suggested, :string, required: true
+  attr :prefix, :string, required: true
+  attr :domains, :list, required: true
 
   defp link_form(assigns) do
     ~H"""
@@ -317,11 +361,22 @@ defmodule QwynkWeb.LinkLive.Index do
           required
         />
 
+        <div :if={@mode == :create}>
+          <label for="domain_id" class="mb-1 block text-sm">Domain</label>
+          <select
+            id="domain_id"
+            name="form[domain_id]"
+            class="w-full border border-base-300 bg-base-100 px-2.5 py-2 text-sm focus:border-primary focus:outline-none"
+          >
+            <option :for={domain <- @domains} value={domain.id}>{domain.host}</option>
+          </select>
+        </div>
+
         <div>
           <label for={@form[:slug].id} class="mb-1 block text-sm">Short link</label>
           <div class="flex items-stretch border border-base-300 bg-base-100 focus-within:border-primary">
             <span class="flex select-none items-center border-r border-base-300 px-2.5 font-mono text-[0.6875rem] text-secondary">
-              {String.replace(QwynkWeb.Endpoint.url(), ~r{^https?://}, "")}/
+              {@prefix}/
             </span>
             <input
               type="text"

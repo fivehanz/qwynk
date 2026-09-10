@@ -169,6 +169,9 @@ defmodule Qwynk.Accounts.User do
       # Generates an authentication token for the user
       change AshAuthentication.GenerateTokenChange
 
+      # The very first account owns the install.
+      change Qwynk.Accounts.Changes.BootstrapSuperadmin
+
       # validates that the password matches the confirmation
       validate AshAuthentication.Strategy.Password.PasswordConfirmationValidation
 
@@ -230,11 +233,27 @@ defmodule Qwynk.Accounts.User do
       argument :api_key, :string, allow_nil?: false
       prepare AshAuthentication.Strategy.ApiKey.SignInPreparation
     end
+
+    update :set_role do
+      description "Superadmin-only role assignment."
+      accept [:role]
+      require_atomic? false
+      change Qwynk.Accounts.Changes.ProtectOwnRole
+    end
   end
 
   policies do
     bypass AshAuthentication.Checks.AshAuthenticationInteraction do
       authorize_if always()
+    end
+
+    policy action(:set_role) do
+      authorize_if expr(^actor(:role) == :superadmin)
+    end
+
+    policy action_type(:read) do
+      authorize_if expr(^actor(:role) in [:superadmin, :admin])
+      authorize_if expr(id == ^actor(:id))
     end
   end
 
@@ -252,6 +271,15 @@ defmodule Qwynk.Accounts.User do
     end
 
     attribute :confirmed_at, :utc_datetime_usec
+
+    attribute :role, :atom do
+      allow_nil? false
+      public? true
+      default :user
+      constraints one_of: [:superadmin, :admin, :user]
+
+      description "superadmin manages domains and roles; admin sees all links; user sees their own."
+    end
   end
 
   relationships do

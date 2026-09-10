@@ -3,7 +3,7 @@ defmodule QwynkWeb.AuthController do
   use AshAuthentication.Phoenix.Controller
 
   def success(conn, activity, user, _token) do
-    return_to = get_session(conn, :return_to) || ~p"/"
+    return_to = get_session(conn, :return_to) || ~p"/_/app"
 
     message =
       case activity do
@@ -45,7 +45,9 @@ defmodule QwynkWeb.AuthController do
   end
 
   def sign_out(conn, _params) do
-    return_to = get_session(conn, :return_to) || ~p"/"
+    # Straight to sign-in: `/_/app` would just bounce there, and `/` is a link
+    # domain's root, which 404s by default.
+    return_to = ~p"/_/sign-in"
 
     conn
     |> clear_session(:qwynk)

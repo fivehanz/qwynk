@@ -8,8 +8,9 @@ defmodule QwynkWeb.LinkLiveTest do
 
   setup do
     Cache.init()
+    Cache.flush()
     reset_analytics()
-    :ok
+    %{domain: domain_fixture(%{host: "acme.test"})}
   end
 
   defp sign_in(conn, user) do
@@ -22,10 +23,18 @@ defmodule QwynkWeb.LinkLiveTest do
     assert {:error, {:redirect, %{to: "/_/sign-in"}}} = live(conn, ~p"/_/app/links")
   end
 
-  test "the list shows only the signed-in user's links", %{conn: conn} do
+  test "the list shows only the signed-in user's links", %{conn: conn, domain: domain} do
     user = user_fixture()
-    mine = link_fixture(user, %{slug: "mine-aa", destination: "https://mine.example"})
-    theirs = link_fixture(nil, %{slug: "theirs-bb", destination: "https://theirs.example"})
+
+    mine =
+      link_fixture(user, %{domain: domain, slug: "mine-aa", destination: "https://mine.example"})
+
+    theirs =
+      link_fixture(nil, %{
+        domain: domain,
+        slug: "theirs-bb",
+        destination: "https://theirs.example"
+      })
 
     {:ok, _view, html} = conn |> sign_in(user) |> live(~p"/_/app/links")
 
@@ -33,7 +42,7 @@ defmodule QwynkWeb.LinkLiveTest do
     refute html =~ theirs.slug
   end
 
-  test "creating a link with a blank slug generates one", %{conn: conn} do
+  test "creating a link with a blank slug generates one", %{conn: conn, domain: domain} do
     user = user_fixture()
     {:ok, view, _html} = conn |> sign_in(user) |> live(~p"/_/app/links")
 
@@ -49,6 +58,8 @@ defmodule QwynkWeb.LinkLiveTest do
     assert html =~ "https://generated.example"
     [link] = Qwynk.Traffic.list_links!(actor: user)
     assert link.slug =~ ~r/^[a-z]{3}-[a-z]{3}$/
+    # The domain select's preselected value is what the form submits.
+    assert link.domain_id == domain.id
   end
 
   test "disabling a link updates the row in place", %{conn: conn} do
@@ -66,10 +77,10 @@ defmodule QwynkWeb.LinkLiveTest do
     assert Qwynk.Traffic.get_link!(link.id, actor: user).is_active == false
   end
 
-  test "search filters by slug and destination", %{conn: conn} do
+  test "search filters by slug and destination", %{conn: conn, domain: domain} do
     user = user_fixture()
-    link_fixture(user, %{slug: "alpha-aa", destination: "https://alpha.example"})
-    link_fixture(user, %{slug: "beta-bb", destination: "https://beta.example"})
+    link_fixture(user, %{domain: domain, slug: "alpha-aa", destination: "https://alpha.example"})
+    link_fixture(user, %{domain: domain, slug: "beta-bb", destination: "https://beta.example"})
 
     {:ok, view, _html} = conn |> sign_in(user) |> live(~p"/_/app/links")
 
@@ -79,9 +90,9 @@ defmodule QwynkWeb.LinkLiveTest do
     refute html =~ "beta-bb"
   end
 
-  test "the detail page renders stats and the chart", %{conn: conn} do
+  test "the detail page renders stats and the chart", %{conn: conn, domain: domain} do
     user = user_fixture()
-    link = link_fixture(user)
+    link = link_fixture(user, %{domain: domain})
 
     {:ok, _view, html} = conn |> sign_in(user) |> live(~p"/_/app/links/#{link.id}")
 

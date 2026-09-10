@@ -15,7 +15,7 @@ defmodule QwynkWeb.SettingsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} active={:settings} rail={@rail}>
+    <Layouts.app flash={@flash} active={:settings} rail={@rail} role={@current_user.role}>
       <h1 class="font-heading text-2xl">Settings</h1>
 
       <dl class="mt-8 max-w-xl divide-y divide-base-300 border-y border-base-300">
