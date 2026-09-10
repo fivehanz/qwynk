@@ -86,6 +86,7 @@ defmodule QwynkWeb do
       import Phoenix.HTML
       # Core UI components
       import QwynkWeb.CoreComponents
+      import QwynkWeb.Chart
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS

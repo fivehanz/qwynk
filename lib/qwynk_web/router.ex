@@ -58,6 +58,9 @@ defmodule QwynkWeb.Router do
       #
       # If an authenticated user must *not* be present:
       # on_mount {QwynkWeb.LiveUserAuth, :live_no_user}
+      live "/_/app", DashboardLive
+      live "/_/app/links", LinkLive.Index, :index
+      live "/_/app/links/:id", LinkLive.Show, :show
     end
 
     auth_routes AuthController, Qwynk.Accounts.User, path: "/_/auth"
