@@ -58,7 +58,9 @@ defmodule QwynkWeb.LinkLiveTest do
     {:ok, view, _html} = conn |> sign_in(user) |> live(~p"/_/app/links")
 
     html =
-      view |> element("button[phx-value-id='#{link.id}'][phx-click=disable]") |> render_click()
+      view
+      |> element("button[phx-value-id='#{link.id}'][phx-click=toggle-active]")
+      |> render_click()
 
     assert html =~ "disabled"
     assert Qwynk.Traffic.get_link!(link.id, actor: user).is_active == false
@@ -84,9 +86,9 @@ defmodule QwynkWeb.LinkLiveTest do
     {:ok, _view, html} = conn |> sign_in(user) |> live(~p"/_/app/links/#{link.id}")
 
     assert html =~ link.slug
-    assert html =~ "Clicks / 30d"
+    assert html =~ "Clicks · 30d"
     assert html =~ "<svg"
-    assert html =~ "No traffic yet"
+    assert html =~ "No traffic in this window"
   end
 
   test "a foreign link is not reachable by id", %{conn: conn} do
@@ -99,6 +101,15 @@ defmodule QwynkWeb.LinkLiveTest do
     assert catch_error(conn |> sign_in(user) |> live(~p"/_/app/links/#{theirs.id}"))
   end
 
+  test "settings shows the account and the privacy stance", %{conn: conn} do
+    user = user_fixture()
+
+    {:ok, _view, html} = conn |> sign_in(user) |> live(~p"/_/app/settings")
+
+    assert html =~ to_string(user.email)
+    assert html =~ "no raw IP addresses"
+  end
+
   test "the dashboard shows totals", %{conn: conn} do
     user = user_fixture()
     link_fixture(user)
@@ -106,6 +117,6 @@ defmodule QwynkWeb.LinkLiveTest do
     {:ok, _view, html} = conn |> sign_in(user) |> live(~p"/_/app")
 
     assert html =~ "Dashboard"
-    assert html =~ "Clicks / 30d"
+    assert html =~ "Clicks · 30d"
   end
 end

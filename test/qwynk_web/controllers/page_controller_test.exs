@@ -1,8 +1,7 @@
 defmodule QwynkWeb.PageControllerTest do
   use QwynkWeb.ConnCase
 
-  test "GET /", %{conn: conn} do
-    conn = get(conn, ~p"/")
-    assert html_response(conn, 200) =~ "Peace of mind from prototype to production"
+  test "GET / sends you into the app", %{conn: conn} do
+    assert redirected_to(get(conn, ~p"/")) == "/_/app"
   end
 end

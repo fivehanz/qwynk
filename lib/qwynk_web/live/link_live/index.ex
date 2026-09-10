@@ -1,13 +1,14 @@
 defmodule QwynkWeb.LinkLive.Index do
   @moduledoc """
-  Link list, create and edit.
+  The link list — the primary surface of the admin.
 
-  Ownership is enforced by the Ash policy on Link — this passes `actor` and
-  never filters by owner_id itself, so the LiveView cannot drift from the policy.
+  Ownership is enforced by the Ash policy on Link: this passes `actor` and never
+  filters by owner_id itself, so the view cannot drift from the policy.
   """
   use QwynkWeb, :live_view
 
   alias Qwynk.Traffic
+  alias Qwynk.Traffic.SlugGenerator
 
   on_mount {QwynkWeb.LiveUserAuth, :live_user_required}
 
@@ -18,6 +19,7 @@ defmodule QwynkWeb.LinkLive.Index do
      |> assign(:page_title, "Links")
      |> assign(:query, "")
      |> assign(:form, nil)
+     |> assign(:mode, nil)
      |> load_links()}
   end
 
@@ -26,13 +28,17 @@ defmodule QwynkWeb.LinkLive.Index do
     {:noreply, socket |> assign(:query, query) |> load_links()}
   end
 
+  def handle_event("clear-search", _params, socket) do
+    {:noreply, socket |> assign(:query, "") |> load_links()}
+  end
+
   def handle_event("new", _params, socket) do
     form =
       Traffic.Link
       |> AshPhoenix.Form.for_create(:create, actor: socket.assigns.current_user)
       |> to_form()
 
-    {:noreply, assign(socket, :form, form)}
+    {:noreply, socket |> assign(form: form, mode: :create, suggested: SlugGenerator.generate())}
   end
 
   def handle_event("edit", %{"id" => id}, socket) do
@@ -43,71 +49,92 @@ defmodule QwynkWeb.LinkLive.Index do
       |> AshPhoenix.Form.for_update(:update, actor: socket.assigns.current_user)
       |> to_form()
 
-    {:noreply, assign(socket, :form, form)}
+    {:noreply, socket |> assign(form: form, mode: :edit, suggested: link.slug)}
   end
 
-  def handle_event("cancel", _params, socket), do: {:noreply, assign(socket, :form, nil)}
+  def handle_event("cancel", _params, socket),
+    do: {:noreply, assign(socket, form: nil, mode: nil)}
 
   def handle_event("validate", %{"form" => params}, socket) do
     {:noreply, assign(socket, :form, AshPhoenix.Form.validate(socket.assigns.form, params))}
   end
 
   def handle_event("save", %{"form" => params}, socket) do
-    case save(socket.assigns.form, params, socket.assigns.current_user) do
-      {:ok, _link} ->
+    case save(socket.assigns.mode, socket.assigns.form, params, socket.assigns.current_user) do
+      {:ok, link} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Link saved.")
-         |> assign(:form, nil)
+         |> put_flash(:info, "Saved /#{link.slug}")
+         |> assign(form: nil, mode: nil)
          |> load_links()}
 
-      {:error, form} ->
+      {:error, %AshPhoenix.Form{} = form} ->
         {:noreply, assign(socket, :form, form)}
+
+      {:error, error} ->
+        {:noreply, put_flash(socket, :error, message(error))}
     end
   end
 
-  def handle_event("disable", %{"id" => id}, socket) do
+  def handle_event("toggle-active", %{"id" => id, "active" => active}, socket) do
     user = socket.assigns.current_user
     link = Traffic.get_link!(id, actor: user)
-    {:ok, _} = Traffic.disable_link(link, actor: user)
 
-    {:noreply, socket |> put_flash(:info, "Link disabled.") |> load_links()}
+    result =
+      if active == "true",
+        do: Traffic.disable_link(link, actor: user),
+        else: Traffic.update_link(link, %{is_active: true}, actor: user)
+
+    case result do
+      {:ok, updated} ->
+        verb = if updated.is_active, do: "enabled", else: "disabled"
+
+        {:noreply, socket |> put_flash(:info, "/#{updated.slug} #{verb}") |> load_links()}
+
+      {:error, error} ->
+        {:noreply, put_flash(socket, :error, message(error))}
+    end
   end
 
-  # Creates go through Traffic.create_link/2 so they inherit the bounded slug
+  # Creates route through Traffic.create_link/2 so they inherit the bounded slug
   # retry; AshPhoenix.Form.submit would call the action directly and lose it.
-  defp save(%{source: %{type: :create}}, params, user) do
-    attrs =
-      %{destination: params["destination"], strategy: strategy(params["strategy"])}
-      |> maybe_put_slug(params["slug"])
-
-    Traffic.create_link(attrs, actor: user)
+  defp save(:create, _form, params, user) do
+    %{destination: params["destination"], strategy: strategy(params["strategy"])}
+    |> maybe_put_slug(params["slug"])
+    |> Traffic.create_link(actor: user)
   end
 
-  defp save(form, params, _user), do: AshPhoenix.Form.submit(form, params: params)
+  defp save(:edit, form, params, _user), do: AshPhoenix.Form.submit(form, params: params)
 
   defp maybe_put_slug(attrs, slug) when is_binary(slug) and slug != "",
-    do: Map.put(attrs, :slug, slug)
+    do: Map.put(attrs, :slug, String.trim(slug))
 
   defp maybe_put_slug(attrs, _slug), do: attrs
 
   defp strategy("permanent"), do: :permanent
   defp strategy(_), do: :temporary
 
-  defp load_links(socket) do
-    links =
-      socket.assigns.current_user
-      |> then(&Traffic.list_links!(actor: &1))
-      |> filter(socket.assigns.query)
-      |> Enum.sort_by(& &1.inserted_at, {:desc, DateTime})
+  defp message(%Ash.Error.Invalid{errors: [%{message: msg, field: field} | _]}),
+    do: "#{field} #{msg}"
 
-    assign(socket, :links, links)
+  defp message(_), do: "Could not save that link."
+
+  defp load_links(socket) do
+    all = Traffic.list_links!(actor: socket.assigns.current_user)
+
+    socket
+    |> assign(:total_count, length(all))
+    |> assign(:rail, QwynkWeb.Rail.build(socket.assigns.current_user))
+    |> assign(
+      :links,
+      all |> filter(socket.assigns.query) |> Enum.sort_by(& &1.inserted_at, {:desc, DateTime})
+    )
   end
 
   defp filter(links, ""), do: links
 
   defp filter(links, query) do
-    q = String.downcase(query)
+    q = String.downcase(String.trim(query))
 
     Enum.filter(links, fn link ->
       String.contains?(String.downcase(link.slug), q) or
@@ -115,99 +142,236 @@ defmodule QwynkWeb.LinkLive.Index do
     end)
   end
 
+  defp short_url(slug), do: QwynkWeb.Endpoint.url() <> "/" <> slug
+
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={assigns[:current_scope]}>
-      <div class="mx-auto max-w-5xl px-4 py-10">
-        <div class="mb-6 flex items-center justify-between gap-4">
-          <h1 class="font-mono text-xs uppercase tracking-widest text-primary">Links</h1>
-          <button phx-click="new" class="btn btn-primary btn-sm rounded-none font-mono">
-            New link
-          </button>
-        </div>
+    <Layouts.app flash={@flash} active={:links} rail={@rail}>
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <h1 class="font-heading text-2xl">Links</h1>
 
-        <form phx-change="search" class="mb-6">
+        <button
+          :if={is_nil(@form)}
+          type="button"
+          phx-click="new"
+          class="border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-primary-content hover:bg-primary/90"
+        >
+          New link
+        </button>
+      </div>
+
+      <.link_form :if={@form} form={@form} mode={@mode} suggested={@suggested} />
+
+      <form :if={@total_count > 0} phx-change="search" phx-submit="search" class="mt-6">
+        <label for="query" class="sr-only">Search links</label>
+        <div class="relative max-w-md">
+          <.icon
+            name="hero-magnifying-glass"
+            class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-secondary"
+          />
           <input
-            type="search"
+            type="text"
+            id="query"
             name="query"
             value={@query}
-            placeholder="Search slug or destination"
-            class="input input-bordered w-full rounded-none font-mono text-sm"
+            autocomplete="off"
+            placeholder="Filter by slug or destination"
+            phx-debounce="200"
+            class="w-full border border-base-300 bg-base-200/40 py-2 pl-9 pr-3 text-sm placeholder:text-secondary focus:border-primary focus:outline-none"
           />
-        </form>
+        </div>
+      </form>
 
-        <div :if={@form} class="mb-6 border border-primary/40 bg-base-200/40 p-5">
-          <.form for={@form} phx-change="validate" phx-submit="save" class="grid gap-3">
-            <.input field={@form[:destination]} label="Destination" placeholder="https://example.com" />
-            <.input field={@form[:slug]} label="Slug (optional — generated if blank)" />
-            <.input
-              field={@form[:strategy]}
-              type="select"
-              label="Strategy"
-              options={[{"Temporary (302)", "temporary"}, {"Permanent (301)", "permanent"}]}
-            />
-            <div class="flex gap-2">
-              <button type="submit" class="btn btn-primary btn-sm rounded-none font-mono">
-                Save
+      <div :if={@links != []} class="mt-6 border-y border-base-300">
+        <ul class="divide-y divide-base-300">
+          <li
+            :for={link <- @links}
+            id={"link-#{link.id}"}
+            class="group flex flex-col gap-3 py-3.5 sm:flex-row sm:items-center sm:gap-4"
+          >
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <.link
+                  navigate={~p"/_/app/links/#{link.id}"}
+                  class={[
+                    "font-mono text-sm",
+                    if(link.is_active, do: "text-primary", else: "text-secondary line-through")
+                  ]}
+                >
+                  /{link.slug}
+                </.link>
+                <span
+                  :if={!link.is_active}
+                  class="border border-base-300 px-1.5 py-0.5 text-[0.625rem] uppercase text-secondary"
+                >
+                  disabled
+                </span>
+                <span
+                  :if={link.strategy == :permanent}
+                  class="border border-base-300 px-1.5 py-0.5 font-mono text-[0.625rem] text-secondary"
+                  title="Permanent redirect — browsers cache this"
+                >
+                  301
+                </span>
+              </div>
+              <p
+                class="mt-0.5 break-all font-mono text-[0.6875rem] text-secondary"
+                title={link.destination}
+              >
+                {link.destination}
+              </p>
+            </div>
+
+            <div class="flex shrink-0 items-center gap-1 text-xs">
+              <button
+                type="button"
+                id={"copy-#{link.id}"}
+                phx-hook="Copy"
+                data-copy={short_url(link.slug)}
+                class="border border-base-300 px-2 py-1 text-secondary hover:border-primary hover:text-primary data-[copied]:border-primary data-[copied]:text-primary"
+              >
+                <span data-copy-label>copy</span>
               </button>
               <button
                 type="button"
-                phx-click="cancel"
-                class="btn btn-ghost btn-sm rounded-none font-mono"
+                phx-click="edit"
+                phx-value-id={link.id}
+                class="border border-base-300 px-2 py-1 text-secondary hover:border-primary hover:text-primary"
               >
-                Cancel
+                edit
+              </button>
+              <button
+                type="button"
+                phx-click="toggle-active"
+                phx-value-id={link.id}
+                phx-value-active={to_string(link.is_active)}
+                data-confirm={link.is_active && "Disable /#{link.slug}? Visitors will get a 404."}
+                class="border border-base-300 px-2 py-1 text-secondary hover:border-error hover:text-error"
+              >
+                {if link.is_active, do: "disable", else: "enable"}
               </button>
             </div>
-          </.form>
-        </div>
+          </li>
+        </ul>
+      </div>
 
-        <div class="overflow-x-auto border border-base-300">
-          <table class="w-full text-left font-mono text-sm">
-            <thead class="border-b border-base-300 text-xs uppercase tracking-widest opacity-60">
-              <tr>
-                <th class="px-4 py-3">Slug</th>
-                <th class="px-4 py-3">Destination</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-base-300">
-              <tr :for={link <- @links} id={"link-#{link.id}"}>
-                <td class="px-4 py-3">
-                  <.link navigate={~p"/_/app/links/#{link.id}"} class="text-primary">
-                    /{link.slug}
-                  </.link>
-                </td>
-                <td class="max-w-xs truncate px-4 py-3 opacity-70">{link.destination}</td>
-                <td class="px-4 py-3">
-                  <span class={if link.is_active, do: "text-success", else: "opacity-50"}>
-                    {if link.is_active, do: "active", else: "disabled"}
-                  </span>
-                </td>
-                <td class="space-x-2 px-4 py-3 text-right text-xs">
-                  <button phx-click="edit" phx-value-id={link.id} class="hover:text-primary">
-                    edit
-                  </button>
-                  <button
-                    :if={link.is_active}
-                    phx-click="disable"
-                    phx-value-id={link.id}
-                    data-confirm="Disable this link?"
-                    class="hover:text-error"
-                  >
-                    disable
-                  </button>
-                </td>
-              </tr>
-              <tr :if={@links == []}>
-                <td colspan="4" class="px-4 py-10 text-center opacity-60">No links.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <%!-- No links at all: teach what one is. --%>
+      <div
+        :if={@links == [] and @total_count == 0}
+        class="mt-6 border border-dashed border-base-300 px-6 py-14 text-center"
+      >
+        <p class="font-heading text-lg">No links yet</p>
+        <p class="mx-auto mt-2 max-w-md text-sm leading-relaxed text-secondary">
+          A link maps a short slug on your domain to any destination URL. Leave the
+          slug blank and Qwynk generates a memorable one like <span class="font-mono text-base-content">zip-zap</span>.
+        </p>
+        <button
+          :if={is_nil(@form)}
+          type="button"
+          phx-click="new"
+          class="mt-6 border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-primary-content hover:bg-primary/90"
+        >
+          Create your first link
+        </button>
+      </div>
+
+      <%!-- Search matched nothing: a different state, a different exit. --%>
+      <div
+        :if={@links == [] and @total_count > 0}
+        class="mt-6 border border-dashed border-base-300 px-6 py-14 text-center"
+      >
+        <p class="text-sm text-secondary">
+          Nothing matches <span class="font-mono text-base-content">{@query}</span>
+          across your {@total_count} links.
+        </p>
+        <button
+          type="button"
+          phx-click="clear-search"
+          class="mt-4 border border-base-300 px-3 py-1.5 text-sm text-secondary hover:border-primary hover:text-primary"
+        >
+          Clear filter
+        </button>
       </div>
     </Layouts.app>
+    """
+  end
+
+  attr :form, :any, required: true
+  attr :mode, :atom, required: true
+  attr :suggested, :string, required: true
+
+  defp link_form(assigns) do
+    ~H"""
+    <div class="mt-6 max-w-xl border border-primary/40 bg-base-200/40 p-5">
+      <h2 class="font-heading text-sm">
+        {if @mode == :create, do: "New link", else: "Edit link"}
+      </h2>
+
+      <.form for={@form} phx-change="validate" phx-submit="save" class="mt-4 grid gap-4">
+        <.input
+          field={@form[:destination]}
+          type="url"
+          label="Destination"
+          placeholder="https://example.com/somewhere"
+          required
+        />
+
+        <div>
+          <label for={@form[:slug].id} class="mb-1 block text-sm">Short link</label>
+          <div class="flex items-stretch border border-base-300 bg-base-100 focus-within:border-primary">
+            <span class="flex select-none items-center border-r border-base-300 px-2.5 font-mono text-[0.6875rem] text-secondary">
+              {String.replace(QwynkWeb.Endpoint.url(), ~r{^https?://}, "")}/
+            </span>
+            <input
+              type="text"
+              id={@form[:slug].id}
+              name={@form[:slug].name}
+              value={if @mode == :edit, do: @form[:slug].value}
+              disabled={@mode == :edit}
+              placeholder={@suggested}
+              autocomplete="off"
+              class="w-full bg-transparent px-2.5 py-2 font-mono text-sm placeholder:text-secondary focus:outline-none disabled:text-secondary"
+            />
+          </div>
+          <p class="mt-1 text-xs text-secondary">
+            {if @mode == :edit,
+              do: "Slugs can't change — visitors may already have this one.",
+              else: "Leave blank and we'll generate one."}
+          </p>
+        </div>
+
+        <div>
+          <.input
+            field={@form[:strategy]}
+            type="select"
+            label="Redirect type"
+            options={[{"Temporary — 302", "temporary"}, {"Permanent — 301", "permanent"}]}
+          />
+          <p class="mt-1 text-xs text-secondary">
+            Browsers cache a permanent redirect, so changing the destination later
+            may not reach visitors who already followed it.
+          </p>
+        </div>
+
+        <div class="flex gap-2 pt-1">
+          <button
+            type="submit"
+            phx-disable-with="Saving…"
+            class="border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-primary-content hover:bg-primary/90 disabled:opacity-50"
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            phx-click="cancel"
+            class="border border-base-300 px-3 py-1.5 text-sm text-secondary hover:text-base-content"
+          >
+            Cancel
+          </button>
+        </div>
+      </.form>
+    </div>
     """
   end
 end

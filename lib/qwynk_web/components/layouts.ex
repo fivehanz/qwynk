@@ -31,37 +31,96 @@ defmodule QwynkWeb.Layouts do
     default: nil,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
+  attr :active, :atom,
+    default: nil,
+    doc: "which nav section is current: :dashboard, :links or :settings"
+
+  attr :rail, :map,
+    default: nil,
+    doc: "system readout for the status rail: %{links:, clicks:, cache:}"
+
   slot :inner_block, required: true
 
   def app(assigns) do
     ~H"""
-    <header class="border-b border-base-300">
-      <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-        <a href={~p"/_/app"} class="flex items-center gap-2">
-          <img src={~p"/images/logo.svg"} width="24" alt="" />
-          <span class="font-mono text-sm font-bold tracking-widest uppercase">Qwynk</span>
-        </a>
+    <header class="sticky top-0 z-30 border-b border-base-300 bg-base-100/95 backdrop-blur-sm">
+      <div class="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:gap-6 sm:px-6">
+        <%!-- Wordmark only, accent variant (BRAND.md 5). --%>
+        <.link
+          navigate={~p"/_/app"}
+          class="flex shrink-0 items-baseline gap-1.5"
+          aria-label="Qwynk home"
+        >
+          <span class="font-heading text-base leading-none">Qwynk</span>
+          <span aria-hidden="true" class="font-heading text-xs leading-none text-primary">///</span>
+        </.link>
 
-        <nav class="flex items-center gap-4 font-mono text-xs">
-          <.link navigate={~p"/_/app"} class="opacity-70 hover:text-primary hover:opacity-100">
-            Dashboard
-          </.link>
-          <.link navigate={~p"/_/app/links"} class="opacity-70 hover:text-primary hover:opacity-100">
-            Links
-          </.link>
-          <.theme_toggle />
-          <a href={~p"/_/sign-out"} class="opacity-70 hover:text-error hover:opacity-100">
-            Sign out
-          </a>
+        <nav class="flex flex-1 items-center gap-1 text-sm" aria-label="Sections">
+          <.nav_link navigate={~p"/_/app"} active={@active == :dashboard}>Dashboard</.nav_link>
+          <.nav_link navigate={~p"/_/app/links"} active={@active == :links}>Links</.nav_link>
+          <.nav_link navigate={~p"/_/app/settings"} active={@active == :settings}>
+            Settings
+          </.nav_link>
         </nav>
+
+        <%!-- Hidden on small screens: it overflows 375px, and Settings carries
+             the same action. --%>
+        <a
+          href={~p"/_/sign-out"}
+          class="hidden shrink-0 text-sm text-secondary hover:text-error sm:inline"
+        >
+          Sign out
+        </a>
+      </div>
+
+      <div :if={@rail} class="border-t border-base-300/60 bg-base-200/40">
+        <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-1 px-4 py-1.5 font-mono text-[0.6875rem] text-secondary sm:px-6">
+          <span><span class="text-base-content tabular">{@rail.links}</span> links</span>
+          <span aria-hidden="true" class="text-base-300">/</span>
+          <span><span class="text-base-content tabular">{@rail.clicks}</span> clicks 30d</span>
+          <span aria-hidden="true" class="text-base-300">/</span>
+          <span><span class="text-base-content tabular">{@rail.uniques}</span> uniques 30d</span>
+          <span aria-hidden="true" class="text-base-300">/</span>
+          <span class="flex items-center gap-1.5">
+            cache
+            <span class={[
+              "inline-block size-1.5",
+              if(@rail.cache == :warm, do: "bg-primary", else: "bg-base-300")
+            ]}>
+            </span>
+            <span class="text-base-content">{@rail.cache}</span>
+          </span>
+        </div>
       </div>
     </header>
 
-    <main>
+    <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
       {render_slot(@inner_block)}
     </main>
 
     <.flash_group flash={@flash} />
+    """
+  end
+
+  attr :navigate, :string, required: true
+  attr :active, :boolean, default: false
+  slot :inner_block, required: true
+
+  defp nav_link(assigns) do
+    ~H"""
+    <.link
+      navigate={@navigate}
+      aria-current={@active && "page"}
+      class={[
+        "relative px-2 py-1 after:absolute after:inset-x-2 after:-bottom-[13px] after:h-px",
+        if(@active,
+          do: "text-base-content after:bg-primary",
+          else: "text-secondary hover:text-base-content after:bg-transparent"
+        )
+      ]}
+    >
+      {render_slot(@inner_block)}
+    </.link>
     """
   end
 
@@ -104,43 +163,6 @@ defmodule QwynkWeb.Layouts do
         {gettext("Attempting to reconnect")}
         <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
       </.flash>
-    </div>
-    """
-  end
-
-  @doc """
-  Provides dark vs light theme toggle based on themes defined in app.css.
-
-  See <head> in root.html.heex which applies the theme before page load.
-  """
-  def theme_toggle(assigns) do
-    ~H"""
-    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
-      <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left]" />
-
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="system"
-      >
-        <.icon name="hero-computer-desktop-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="light"
-      >
-        <.icon name="hero-sun-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="dark"
-      >
-        <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
     </div>
     """
   end

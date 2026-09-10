@@ -1,5 +1,5 @@
 defmodule QwynkWeb.LinkLive.Show do
-  @moduledoc "One link: its details and a 30-day chart."
+  @moduledoc "One link: its readout and a 30-day chart."
   use QwynkWeb, :live_view
 
   on_mount {QwynkWeb.LiveUserAuth, :live_user_required}
@@ -15,53 +15,86 @@ defmodule QwynkWeb.LinkLive.Show do
      |> assign(:page_title, "/" <> link.slug)
      |> assign(:link, link)
      |> assign(:rows, rows)
+     |> assign(:rail, QwynkWeb.Rail.build(socket.assigns.current_user))
      |> assign(:clicks, Enum.sum(Enum.map(rows, & &1.clicks)))
      |> assign(:uniques, Enum.sum(Enum.map(rows, & &1.uniques)))}
   end
 
+  defp short_url(slug), do: QwynkWeb.Endpoint.url() <> "/" <> slug
+
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={assigns[:current_scope]}>
-      <div class="mx-auto max-w-5xl px-4 py-10">
-        <.link navigate={~p"/_/app/links"} class="font-mono text-xs opacity-60 hover:text-primary">
-          ← Links
-        </.link>
+    <Layouts.app flash={@flash} active={:links} rail={@rail}>
+      <.link
+        navigate={~p"/_/app/links"}
+        class="inline-flex items-center gap-1 text-sm text-secondary hover:text-primary"
+      >
+        <.icon name="hero-arrow-left" class="size-3.5" /> Links
+      </.link>
 
-        <h1 class="mt-3 font-mono text-3xl font-bold text-primary">/{@link.slug}</h1>
-        <p class="mt-1 truncate font-mono text-sm opacity-60">→ {@link.destination}</p>
-
-        <dl class="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div class="border border-base-300 bg-base-200/40 p-4">
-            <dt class="font-mono text-xs uppercase tracking-widest opacity-60">Status</dt>
-            <dd class={["mt-1 font-mono", if(@link.is_active, do: "text-success", else: "opacity-50")]}>
-              {if @link.is_active, do: "active", else: "disabled"}
-            </dd>
-          </div>
-          <div class="border border-base-300 bg-base-200/40 p-4">
-            <dt class="font-mono text-xs uppercase tracking-widest opacity-60">Strategy</dt>
-            <dd class="mt-1 font-mono">
-              {if @link.strategy == :permanent, do: "301", else: "302"}
-            </dd>
-          </div>
-          <div class="border border-base-300 bg-base-200/40 p-4">
-            <dt class="font-mono text-xs uppercase tracking-widest opacity-60">Clicks / 30d</dt>
-            <dd class="mt-1 font-mono text-primary">{@clicks}</dd>
-          </div>
-          <div class="border border-base-300 bg-base-200/40 p-4">
-            <dt class="font-mono text-xs uppercase tracking-widest opacity-60">Uniques / 30d</dt>
-            <dd class="mt-1 font-mono text-secondary">{@uniques}</dd>
-          </div>
-        </dl>
-
-        <div class="mt-8 border border-base-300 bg-base-200/40 p-5">
-          <.area_chart rows={@rows} />
+      <div class="mt-4 flex flex-wrap items-start justify-between gap-4">
+        <div class="min-w-0">
+          <h1 class="font-mono text-2xl text-primary sm:text-3xl">/{@link.slug}</h1>
+          <p class="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 break-all font-mono text-xs text-secondary">
+            <.icon name="hero-arrow-long-right" class="size-3.5 shrink-0" />
+            <a href={@link.destination} rel="noreferrer nofollow" class="hover:text-base-content">
+              {@link.destination}
+            </a>
+          </p>
         </div>
 
-        <p class="mt-6 font-mono text-xs opacity-40">
-          Created {Calendar.strftime(@link.inserted_at, "%Y-%m-%d %H:%M UTC")}
-        </p>
+        <button
+          type="button"
+          id={"copy-#{@link.id}"}
+          phx-hook="Copy"
+          data-copy={short_url(@link.slug)}
+          class="shrink-0 border border-base-300 px-3 py-1.5 text-sm text-secondary hover:border-primary hover:text-primary data-[copied]:border-primary data-[copied]:text-primary"
+        >
+          <span data-copy-label>copy link</span>
+        </button>
       </div>
+
+      <%!-- One hairline-divided readout row. No tiles nested in a panel. --%>
+      <dl class="mt-8 grid grid-cols-2 gap-x-6 gap-y-5 border-y border-base-300 py-5 sm:grid-cols-4 sm:divide-x sm:divide-base-300">
+        <div class="sm:pl-6 sm:first:pl-0">
+          <dt class="text-xs text-secondary">Clicks · 30d</dt>
+          <dd class="mt-1 font-heading text-3xl text-primary">{@clicks}</dd>
+        </div>
+        <div class="sm:pl-6">
+          <dt class="text-xs text-secondary">Unique visitors</dt>
+          <dd class="mt-1 font-heading text-3xl">{@uniques}</dd>
+        </div>
+        <div class="sm:pl-6">
+          <dt class="text-xs text-secondary">Status</dt>
+          <dd class={[
+            "mt-1 flex items-center gap-2 text-sm",
+            if(@link.is_active, do: "text-base-content", else: "text-secondary")
+          ]}>
+            <span class={[
+              "inline-block size-1.5",
+              if(@link.is_active, do: "bg-primary", else: "bg-base-300")
+            ]}>
+            </span>
+            {if @link.is_active, do: "active", else: "disabled"}
+          </dd>
+        </div>
+        <div class="sm:pl-6">
+          <dt class="text-xs text-secondary">Redirect</dt>
+          <dd class="mt-1 font-mono text-sm">
+            {if @link.strategy == :permanent, do: "301 permanent", else: "302 temporary"}
+          </dd>
+        </div>
+      </dl>
+
+      <section class="mt-10">
+        <h2 class="text-sm text-secondary">Traffic · last 30 days</h2>
+        <.area_chart rows={@rows} class="mt-4" />
+      </section>
+
+      <p class="mt-10 font-mono text-[0.6875rem] text-secondary">
+        created {Calendar.strftime(@link.inserted_at, "%Y-%m-%d %H:%M UTC")}
+      </p>
     </Layouts.app>
     """
   end

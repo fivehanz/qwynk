@@ -61,6 +61,7 @@ defmodule QwynkWeb.Router do
       live "/_/app", DashboardLive
       live "/_/app/links", LinkLive.Index, :index
       live "/_/app/links/:id", LinkLive.Show, :show
+      live "/_/app/settings", SettingsLive
     end
 
     auth_routes AuthController, Qwynk.Accounts.User, path: "/_/auth"

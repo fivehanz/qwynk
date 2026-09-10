@@ -25,15 +25,47 @@ import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/qwynk"
 import topbar from "../vendor/topbar"
 
+// Copies a link's full short URL. Kept here rather than a colocated <script>
+// because AGENTS.md forbids inline script tags in templates.
+const Copy = {
+  mounted() {
+    this.el.addEventListener("click", async () => {
+      const value = this.el.dataset.copy
+      const label = this.el.querySelector("[data-copy-label]")
+      try {
+        await navigator.clipboard.writeText(value)
+      } catch {
+        const field = document.createElement("input")
+        field.value = value
+        field.setAttribute("readonly", "")
+        field.className = "fixed left-0 top-0 opacity-0"
+        document.body.appendChild(field)
+        field.select()
+        try { document.execCommand("copy") } finally { field.remove() }
+      }
+      if (!label) return
+      const previous = label.textContent
+      label.textContent = "copied"
+      this.el.dataset.copied = "true"
+      clearTimeout(this.timer)
+      this.timer = setTimeout(() => {
+        label.textContent = previous
+        delete this.el.dataset.copied
+      }, 1200)
+    })
+  },
+  destroyed() { clearTimeout(this.timer) },
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  hooks: {...colocatedHooks, Copy},
 })
 
 // Show progress bar on live navigation and form submits
-topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
+topbar.config({barColors: {0: "#2dd4bf"}, shadowColor: "rgba(0, 0, 0, .3)"})
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
