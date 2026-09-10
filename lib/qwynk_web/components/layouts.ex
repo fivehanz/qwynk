@@ -45,7 +45,7 @@ defmodule QwynkWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <header class="sticky top-0 z-30 border-b border-base-300 bg-base-100/95 backdrop-blur-sm">
+    <header class="z-30 border-b border-base-300 bg-base-100/95 backdrop-blur-sm sm:sticky sm:top-0">
       <%!-- Wraps on small screens: at 360px the wordmark and four nav items
            already consume the full row, so nothing fits beside them. Sign out
            stays on the first line and the nav drops below rather than any
@@ -82,8 +82,8 @@ defmodule QwynkWeb.Layouts do
         </a>
       </div>
 
-      <div :if={@rail} class="hidden border-t border-base-300/60 bg-base-200/40 sm:block">
-        <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-1 px-4 py-1.5 font-mono text-[0.6875rem] text-secondary sm:px-6">
+      <div :if={@rail} class="border-t border-base-300/60 bg-base-200/40">
+        <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-1.5 font-mono text-[0.6875rem] text-secondary sm:gap-x-5 sm:px-6">
           <span><span class="text-base-content tabular">{@rail.links}</span> links</span>
           <span aria-hidden="true" class="text-base-300">/</span>
           <span><span class="text-base-content tabular">{@rail.clicks}</span> clicks 30d</span>
