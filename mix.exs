@@ -42,15 +42,11 @@ defmodule Qwynk.MixProject do
   defp deps do
     [
       {:bcrypt_elixir, "~> 3.0"},
-      {:picosat_elixir, "~> 0.2"},
+      {:simple_sat, "~> 0.1"},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
-      {:oban, "~> 2.0"},
       {:usage_rules, "~> 0.1", only: [:dev]},
       {:tidewave, "~> 0.5", only: [:dev]},
       {:live_debugger, "~> 0.4", only: [:dev]},
-      {:oban_web, "~> 2.0"},
-      {:ash_oban, "~> 0.6"},
-      {:ash_admin, "~> 0.13"},
       {:ash_authentication_phoenix, "~> 2.0"},
       {:ash_authentication, "~> 4.0"},
       {:ash_postgres, "~> 2.0"},

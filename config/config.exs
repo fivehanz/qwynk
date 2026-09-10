@@ -7,16 +7,10 @@
 # General application configuration
 import Config
 
-config :ash_oban, pro?: false
-
-config :qwynk, Oban,
-  engine: Oban.Engines.Basic,
-  notifier: Oban.Notifiers.Postgres,
-  queues: [default: 10],
-  repo: Qwynk.Repo,
-  plugins: [{Oban.Plugins.Cron, []}]
-
 config :ash,
+  # Counts unicode codepoints like SQL does, so max_length actually bounds stored
+  # size. :graphemes (the old default) lets a combining-mark string of any length pass.
+  default_string_length_count: :codepoints,
   allow_forbidden_field_for_relationships_by_default?: true,
   include_embedded_source_by_default?: false,
   show_keysets_for_all_actions?: false,

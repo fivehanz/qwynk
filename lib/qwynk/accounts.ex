@@ -1,9 +1,5 @@
 defmodule Qwynk.Accounts do
-  use Ash.Domain, otp_app: :qwynk, extensions: [AshAdmin.Domain]
-
-  admin do
-    show? true
-  end
+  use Ash.Domain, otp_app: :qwynk
 
   resources do
     resource Qwynk.Accounts.Token

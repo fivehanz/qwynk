@@ -11,11 +11,7 @@ defmodule Qwynk.Application do
       QwynkWeb.Telemetry,
       Qwynk.Repo,
       {DNSCluster, query: Application.get_env(:qwynk, :dns_cluster_query) || :ignore},
-      {Oban,
-       AshOban.config(
-         Application.fetch_env!(:qwynk, :ash_domains),
-         Application.fetch_env!(:qwynk, Oban)
-       )},
+      {Task.Supervisor, name: Qwynk.TaskSupervisor},
       {Phoenix.PubSub, name: Qwynk.PubSub},
       # Start a worker by calling: Qwynk.Worker.start_link(arg)
       # {Qwynk.Worker, arg},

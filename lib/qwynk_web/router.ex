@@ -1,7 +1,6 @@
 defmodule QwynkWeb.Router do
   use QwynkWeb, :router
 
-  import Oban.Web.Router
   use AshAuthentication.Phoenix.Router
 
   import AshAuthentication.Plug.Helpers
@@ -100,22 +99,6 @@ defmodule QwynkWeb.Router do
 
       live_dashboard "/dashboard", metrics: QwynkWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
-    end
-
-    scope "/" do
-      pipe_through :browser
-
-      oban_dashboard("/oban")
-    end
-  end
-
-  if Application.compile_env(:qwynk, :dev_routes) do
-    import AshAdmin.Router
-
-    scope "/admin" do
-      pipe_through :browser
-
-      ash_admin "/"
     end
   end
 end
