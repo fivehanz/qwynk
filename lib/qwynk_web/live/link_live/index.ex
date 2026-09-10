@@ -34,6 +34,10 @@ defmodule QwynkWeb.LinkLive.Index do
   end
 
   def handle_event("new", _params, socket) do
+    # The form arrives carrying a slug: EnsureSlug runs whenever the changeset is
+    # built, so this field cannot be kept empty while bound to it. Showing the
+    # real value is the better trade anyway now that generate can re-roll it —
+    # you see what you are about to get instead of a ghost placeholder.
     form =
       Traffic.Link
       |> AshPhoenix.Form.for_create(:create, actor: socket.assigns.current_user)
@@ -61,11 +65,21 @@ defmodule QwynkWeb.LinkLive.Index do
      |> assign(:prefix, link.domain.host)}
   end
 
+  def handle_event("suggest", _params, socket) do
+    form = socket.assigns.form
+    params = Map.put(form.source.params || %{}, "slug", SlugGenerator.generate())
+
+    {:noreply, assign(socket, :form, AshPhoenix.Form.validate(form, params))}
+  end
+
   def handle_event("cancel", _params, socket),
     do: {:noreply, assign(socket, form: nil, mode: nil)}
 
   def handle_event("validate", %{"form" => params}, socket) do
-    {:noreply, assign(socket, :form, AshPhoenix.Form.validate(socket.assigns.form, params))}
+    {:noreply,
+     socket
+     |> assign(:form, AshPhoenix.Form.validate(socket.assigns.form, params))
+     |> assign(:prefix, prefix_for(params["domain_id"], socket.assigns))}
   end
 
   def handle_event("save", %{"form" => params}, socket) do
@@ -126,6 +140,17 @@ defmodule QwynkWeb.LinkLive.Index do
 
   defp default_prefix([]), do: "—"
   defp default_prefix([domain | _]), do: domain.host
+
+  # The prefix has to follow the domain select, or it shows the wrong host for
+  # the link being created.
+  defp prefix_for(nil, assigns), do: assigns.prefix
+
+  defp prefix_for(domain_id, assigns) do
+    case Enum.find(assigns.domains, &(&1.id == domain_id)) do
+      nil -> assigns.prefix
+      domain -> domain.host
+    end
+  end
 
   defp strategy("permanent"), do: :permanent
   defp strategy(_), do: :temporary
@@ -382,17 +407,26 @@ defmodule QwynkWeb.LinkLive.Index do
               type="text"
               id={@form[:slug].id}
               name={@form[:slug].name}
-              value={if @mode == :edit, do: @form[:slug].value}
+              value={@form[:slug].value}
               disabled={@mode == :edit}
               placeholder={@suggested}
               autocomplete="off"
               class="w-full bg-transparent px-2.5 py-2 font-mono text-sm placeholder:text-secondary focus:outline-none disabled:text-secondary"
             />
+            <button
+              :if={@mode == :create}
+              type="button"
+              phx-click="suggest"
+              title="Suggest another slug"
+              class="flex shrink-0 items-center gap-1.5 border-l border-base-300 px-2.5 text-xs text-secondary hover:text-primary"
+            >
+              <.icon name="hero-arrow-path" class="size-3.5" /> generate
+            </button>
           </div>
           <p class="mt-1 text-xs text-secondary">
             {if @mode == :edit,
               do: "Slugs can't change — visitors may already have this one.",
-              else: "Leave blank and we'll generate one."}
+              else: "Type your own, or generate another. Clearing it also generates one."}
           </p>
         </div>
 
