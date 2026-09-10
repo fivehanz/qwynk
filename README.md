@@ -4,9 +4,10 @@
 It separates the redirect engine (ETS-backed) from the analytics engine
 (async batching).
 
-**Status: early development.** Authentication is complete. The redirect engine,
-analytics pipeline and admin UI are being implemented. See `PRD.md` for the
-specification and `AGENTS.md` for the architecture rules.
+**Status: v1 working.** Redirect engine, privacy-first analytics pipeline and
+the owner-scoped admin are implemented and tested. GeoIP enrichment is wired
+but needs a MaxMind database to return anything. See `PRD.md` for the
+specification and `AGENTS.md` for the architecture rules that must hold.
 
 ## Tech Stack
 * **Core:** Elixir 1.18+ / OTP 26+, Phoenix 1.8, Ash Framework 3.0
