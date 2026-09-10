@@ -7,6 +7,9 @@ defmodule Qwynk.Application do
 
   @impl true
   def start(_type, _args) do
+    # Owned by the application master process, so it lives as long as the app.
+    Qwynk.Traffic.Cache.init()
+
     children = [
       QwynkWeb.Telemetry,
       Qwynk.Repo,
