@@ -46,8 +46,11 @@ defmodule QwynkWeb.Layouts do
   def app(assigns) do
     ~H"""
     <header class="sticky top-0 z-30 border-b border-base-300 bg-base-100/95 backdrop-blur-sm">
-      <div class="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:gap-6 sm:px-6">
-        <%!-- Wordmark only, accent variant (BRAND.md 5). --%>
+      <%!-- Wraps on small screens: at 360px the wordmark and four nav items
+           already consume the full row, so nothing fits beside them. Sign out
+           stays on the first line and the nav drops below rather than any
+           control being hidden. --%>
+      <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 sm:flex-nowrap sm:gap-x-6 sm:px-6 sm:py-3">
         <.link
           navigate={~p"/_/app"}
           class="flex shrink-0 items-baseline gap-1.5"
@@ -57,32 +60,29 @@ defmodule QwynkWeb.Layouts do
           <span aria-hidden="true" class="font-heading text-xs leading-none text-primary">///</span>
         </.link>
 
-        <nav class="flex flex-1 items-center gap-1 text-sm" aria-label="Sections">
+        <nav
+          class="order-last flex w-full items-center gap-1 overflow-x-auto text-sm sm:order-none sm:w-auto sm:flex-1 sm:overflow-visible"
+          aria-label="Sections"
+        >
           <.nav_link navigate={~p"/_/app"} active={@active == :dashboard}>Dashboard</.nav_link>
           <.nav_link navigate={~p"/_/app/links"} active={@active == :links}>Links</.nav_link>
           <.nav_link navigate={~p"/_/app/settings"} active={@active == :settings}>
             Settings
           </.nav_link>
-          <.nav_link
-            :if={@role == :superadmin}
-            navigate={~p"/_/admin"}
-            active={@active == :admin}
-          >
+          <.nav_link :if={@role == :superadmin} navigate={~p"/_/admin"} active={@active == :admin}>
             Console
           </.nav_link>
         </nav>
 
-        <%!-- Hidden on small screens: it overflows 375px, and Settings carries
-             the same action. --%>
         <a
           href={~p"/_/sign-out"}
-          class="hidden shrink-0 text-sm text-secondary hover:text-error sm:inline"
+          class="ml-auto shrink-0 px-1 py-2 text-sm text-secondary hover:text-error sm:ml-0 sm:px-0 sm:py-1"
         >
           Sign out
         </a>
       </div>
 
-      <div :if={@rail} class="border-t border-base-300/60 bg-base-200/40">
+      <div :if={@rail} class="hidden border-t border-base-300/60 bg-base-200/40 sm:block">
         <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-1 px-4 py-1.5 font-mono text-[0.6875rem] text-secondary sm:px-6">
           <span><span class="text-base-content tabular">{@rail.links}</span> links</span>
           <span aria-hidden="true" class="text-base-300">/</span>
@@ -121,7 +121,7 @@ defmodule QwynkWeb.Layouts do
       navigate={@navigate}
       aria-current={@active && "page"}
       class={[
-        "relative px-2 py-1 after:absolute after:inset-x-2 after:-bottom-[13px] after:h-px",
+        "relative shrink-0 whitespace-nowrap px-2 py-2 after:absolute after:inset-x-2 after:bottom-0 after:h-px sm:py-1.5",
         if(@active,
           do: "text-base-content after:bg-primary",
           else: "text-secondary hover:text-base-content after:bg-transparent"
