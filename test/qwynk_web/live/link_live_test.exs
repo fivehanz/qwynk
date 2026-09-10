@@ -13,6 +13,23 @@ defmodule QwynkWeb.LinkLiveTest do
     %{domain: domain_fixture(%{host: "acme.test"})}
   end
 
+  # Which domain option the server marked selected, or nil when it marked none.
+  # Matches the whole tag first: Phoenix emits `selected` before `value`, and
+  # attribute order is not something a test should depend on.
+  defp selected_domain(html) do
+    ~r/<option\b[^>]*>/
+    |> Regex.scan(html)
+    |> Enum.map(&List.first/1)
+    |> Enum.find_value(fn tag ->
+      with true <- String.contains?(tag, "selected"),
+           [_, value] <- Regex.run(~r/value="([^"]+)"/, tag) do
+        value
+      else
+        _ -> nil
+      end
+    end)
+  end
+
   # The slug input's value attribute, or nil when it is empty.
   defp slug_value(html) do
     case Regex.run(~r/<input[^>]*name="form\[slug\]"[^>]*value="([^"]+)"/, html) do
@@ -104,6 +121,42 @@ defmodule QwynkWeb.LinkLiveTest do
       |> render_change()
 
     assert html =~ "#{other.host}/"
+  end
+
+  test "generate keeps the chosen domain selected", %{conn: conn, domain: domain} do
+    other = domain_fixture(%{host: "zeta.test"})
+    user = user_fixture()
+
+    {:ok, view, _html} = conn |> sign_in(user) |> live(~p"/_/app/links")
+    view |> element("button", "New link") |> render_click()
+
+    view |> form("form[phx-submit=save]", form: %{domain_id: other.id}) |> render_change()
+    html = view |> element("button[phx-click=suggest]") |> render_click()
+
+    assert selected_domain(html) == other.id
+    refute selected_domain(html) == domain.id
+  end
+
+  test "a link is created on the domain that was chosen, not the first one", %{
+    conn: conn,
+    domain: domain
+  } do
+    other = domain_fixture(%{host: "zeta.test"})
+    user = user_fixture()
+
+    {:ok, view, _html} = conn |> sign_in(user) |> live(~p"/_/app/links")
+    view |> element("button", "New link") |> render_click()
+
+    view |> form("form[phx-submit=save]", form: %{domain_id: other.id}) |> render_change()
+    view |> element("button[phx-click=suggest]") |> render_click()
+
+    view
+    |> form("form[phx-submit=save]", form: %{destination: "https://chosen.example"})
+    |> render_submit()
+
+    assert [link] = Qwynk.Traffic.list_links!(actor: user)
+    assert link.domain_id == other.id
+    refute link.domain_id == domain.id
   end
 
   test "generate keeps what was already typed", %{conn: conn} do

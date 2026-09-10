@@ -386,16 +386,18 @@ defmodule QwynkWeb.LinkLive.Index do
           required
         />
 
-        <div :if={@mode == :create}>
-          <label for="domain_id" class="mb-1 block text-sm">Domain</label>
-          <select
-            id="domain_id"
-            name="form[domain_id]"
-            class="w-full border border-base-300 bg-base-100 px-2.5 py-2 text-sm focus:border-primary focus:outline-none"
-          >
-            <option :for={domain <- @domains} value={domain.id}>{domain.host}</option>
-          </select>
-        </div>
+        <%!-- `<.input>` rather than a hand-rolled select: it renders the chosen
+             option as `selected`, which a bare `<option>` loop does not. Without
+             that marker LiveView's DOM patcher resets the control to the first
+             option on every re-render, and the link is then created on the wrong
+             domain. --%>
+        <.input
+          :if={@mode == :create}
+          field={@form[:domain_id]}
+          type="select"
+          label="Domain"
+          options={Enum.map(@domains, &{&1.host, &1.id})}
+        />
 
         <div>
           <label for={@form[:slug].id} class="mb-1 block text-sm">Short link</label>
