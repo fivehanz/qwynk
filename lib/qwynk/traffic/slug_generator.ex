@@ -6,11 +6,11 @@ defmodule Qwynk.Traffic.SlugGenerator do
   """
 
   # Crisp starting sounds (No Q, X)
-  @onsets ~c"bdfgjklmnprstvwz" 
+  @onsets ~c"bdfgjklmnprstvwz"
   # Vowels
   @nuclei ~c"aeiou"
   # Punchy ending sounds (x and z added for 'cool' factor)
-  @codas  ~c"bdgkmnpstxz"
+  @codas ~c"bdgkmnpstxz"
 
   @doc "Generates a bouncy slug (e.g., 'zax-bop')"
   def generate do
@@ -24,7 +24,7 @@ defmodule Qwynk.Traffic.SlugGenerator do
 
   defp syllable do
     c1 = Enum.random(@onsets)
-    v  = Enum.random(@nuclei)
+    v = Enum.random(@nuclei)
     c2 = Enum.random(@codas)
     List.to_string([c1, v, c2])
   end

@@ -1,34 +1,49 @@
 # Qwynk
 
-**Qwynk** is a high-performance, privacy-centric URL shortener and link manager. 
+**Qwynk** is a high-performance, privacy-centric URL shortener and link manager.
+It separates the redirect engine (ETS-backed) from the analytics engine
+(async batching).
 
-* It separates the redirect engine (ETS-backed) from the analytics engine (Async Batching).
+**Status: early development.** Authentication is complete. The redirect engine,
+analytics pipeline and admin UI are being implemented. See `PRD.md` for the
+specification and `AGENTS.md` for the architecture rules.
 
 ## Tech Stack
 * **Core:** Elixir 1.18+ / OTP 26+, Phoenix 1.8, Ash Framework 3.0
 * **Data:** PostgreSQL 16+, ETS (Erlang Term Storage)
-* **Frontend:** LiveView v1, Tailwind v4 + Daisy UI v5, D3.js
-* **Geo:** MaxMind GeoLite2 (Local MMDB)
+* **Frontend:** LiveView + Tailwind v4 + Daisy UI v5, server-rendered SVG charts
+* **Geo:** MaxMind GeoLite2 (local MMDB, optional)
+
+No Redis. No job queue. OTP provides the cache, the buffer and the async
+dispatch.
 
 ## Directory Structure
-* `lib/qwynk/traffic/` - Link management & Slug logic.
-* `lib/qwynk/analytics/` - Hit logging & GeoIP.
-* `lib/qwynk/accounts/` - User auth.
+* `lib/qwynk/traffic/` — link management, slug logic, ETS cache
+* `lib/qwynk/analytics/` — hit logging, enrichment, GeoIP, buffer
+* `lib/qwynk/accounts/` — user auth
+* `lib/qwynk_web/` — router, redirect controller, admin LiveViews
+* `landing_page/` — Astro marketing site (deployed separately to Cloudflare)
+* `brand_book/` — SvelteKit brand reference
 
 ## Architecture
 
-[Image of Qwynk Data Flow Diagram]
-
-1.  **The Bouncer:** Incoming traffic hits the Phoenix Endpoint.
-2.  **The Cache:** Lookups happen in RAM (ETS).
-3.  **The Vault:** Persistent data lives in Postgres, managed by Ash Resources.
-4.  **The Ledger:** Analytics are hashed (anonymized) and buffered before writing.
+1.  **The Bouncer:** incoming traffic hits the Phoenix Endpoint. `/_/` is
+    reserved for internals; everything else is a slug.
+2.  **The Cache:** lookups happen in RAM (ETS). The cached entry carries
+    `link_id` so analytics never needs a second lookup.
+3.  **The Vault:** persistent data lives in Postgres, managed by Ash resources.
+4.  **The Ledger:** analytics are anonymized *before* buffering, then bulk
+    inserted. Raw IP and User-Agent never leave the request.
 
 ## Prerequisites (FreeBSD)
-* Elixir 1.18+ & Erlang/OTP 26+ (verified in mise.toml)
+* Elixir 1.18+ & Erlang/OTP 26+ (see `mise.toml`)
 * PostgreSQL 16+
-* `gmake` and `clang` (Required for `picosat` NIF compilation)
-* MaxMind City Database (`GeoLite2-City.mmdb`) placed in `priv/geoip/`
+* Optional: MaxMind City database (`GeoLite2-City.mmdb`) in `priv/geoip/`.
+  Without it, `country` is simply `nil`. The file is gitignored — MaxMind's
+  license does not permit redistribution.
+
+There is no C compiler requirement: `simple_sat` replaced `picosat_elixir`, so
+`gmake` and `clang` are no longer needed.
 
 ## Configuration
 Set the following environment variables in your `sys.rc` or `.env`:
@@ -38,3 +53,16 @@ export SECRET_KEY_BASE="your_secure_key"
 export DATABASE_URL="postgres://user:pass@localhost/qwynk_prod"
 export PHX_HOST="jsmx.org"
 export POOL_SIZE=10
+export GEOIP_PATH="/usr/local/share/qwynk/GeoLite2-City.mmdb"  # optional
+```
+
+## Deployment
+Build the release **on FreeBSD**. A Phoenix release bundles the BEAM runtime and
+is built for a specific OS and architecture — a Linux-built release will not run
+in a FreeBSD jail.
+
+```bash
+mix deps.get --only prod
+MIX_ENV=prod mix assets.deploy
+MIX_ENV=prod mix release
+```

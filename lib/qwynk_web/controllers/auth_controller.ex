@@ -25,11 +25,11 @@ defmodule QwynkWeb.AuthController do
     message =
       case {activity, reason} do
         {_,
-          %AshAuthentication.Errors.AuthenticationFailed{
-            caused_by: %Ash.Error.Forbidden{
-              errors: [%AshAuthentication.Errors.CannotConfirmUnconfirmedUser{}]
-            }
-          }} ->
+         %AshAuthentication.Errors.AuthenticationFailed{
+           caused_by: %Ash.Error.Forbidden{
+             errors: [%AshAuthentication.Errors.CannotConfirmUnconfirmedUser{}]
+           }
+         }} ->
           """
           You have already signed in another way, but have not confirmed your account.
           You can confirm your account using the link we sent to you, or by resetting your password.

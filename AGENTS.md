@@ -44,6 +44,35 @@ custom classes must fully style the input
 - Focus on **delightful details** like hover effects, loading states, and smooth page transitions
 
 
+## Qwynk Architecture Rules
+
+These are load-bearing. Each one exists because violating it breaks a stated
+guarantee in PRD.md, and most are guarded by a test that must not be deleted.
+
+1. The redirect path must never synchronously write analytics.
+2. The redirect path must never perform a GeoIP lookup on an ETS hit.
+3. The redirect path must never require PostgreSQL on an ETS hit.
+4. Raw IP and User-Agent must never enter AnalyticsBuffer state or any DB row.
+   The privacy boundary is `Qwynk.Analytics.Enrich`, which runs before buffering.
+5. AnalyticsBuffer must have a hard memory limit and drop events rather than grow
+   without bound. Dropping analytics is always preferable to degrading redirects.
+6. ETS cache values must contain `link_id`, so analytics never needs a second lookup.
+7. Every Link mutation (update, disable, destroy) must invalidate the ETS entry.
+   TTL is a safety net, not the invalidation mechanism.
+8. Never introduce Redis without explicit approval.
+9. Never introduce a background-job framework for analytics or token cleanup.
+10. Preserve FreeBSD compatibility: standard Mix, no Docker, no C NIF dependencies.
+
+Two consequences of these rules that are easy to trip over:
+
+- `config/config.exs` sets `default_actions_require_atomic?: true`. Any update
+  action carrying an `after_action` hook (rule 7) needs `require_atomic? false`
+  or Ash raises at compile time.
+- AshAuthentication resolves `register_path`/`reset_path` through
+  `Phoenix.Router.scoped_path/2` *and* defines the route inside the enclosing
+  scope. Keep the auth macros in the root scope with explicit `/_/` paths;
+  nesting them in `scope "/_"` yields `/_/_/register`.
+
 <!-- usage-rules-start -->
 
 <!-- phoenix:elixir-start -->
