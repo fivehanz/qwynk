@@ -105,4 +105,11 @@ defmodule QwynkWeb.Router do
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
   end
+
+  # LAST scope in the router: `/:slug` must never shadow a `/_/` route.
+  scope "/", QwynkWeb do
+    pipe_through :redirect_path
+
+    get "/:slug", RedirectController, :show
+  end
 end
