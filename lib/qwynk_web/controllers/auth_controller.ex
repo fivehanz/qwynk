@@ -41,7 +41,7 @@ defmodule QwynkWeb.AuthController do
 
     conn
     |> put_flash(:error, message)
-    |> redirect(to: ~p"/sign-in")
+    |> redirect(to: ~p"/_/sign-in")
   end
 
   def sign_out(conn, _params) do

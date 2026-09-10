@@ -27,6 +27,23 @@ defmodule QwynkWeb.Router do
     plug :set_actor, :user
   end
 
+  # The redirect path drops no cookies and touches no session (PRD 5.1).
+  pipeline :redirect_path do
+    plug :accepts, ["html"]
+    plug :put_secure_browser_headers
+  end
+
+  scope "/", QwynkWeb do
+    pipe_through :browser
+
+    get "/", PageController, :home
+  end
+
+  # `/_/` is reserved for system internals so that `/:slug` can own everything
+  # else (PRD 3.1). These live in the root scope with explicit `/_/` paths:
+  # AshAuthentication resolves `register_path`/`reset_path` through
+  # `Phoenix.Router.scoped_path/2` AND defines the route inside the enclosing
+  # scope, so nesting them in `scope "/_"` prefixes them twice (/_/_/register).
   scope "/", QwynkWeb do
     pipe_through :browser
 
@@ -42,59 +59,46 @@ defmodule QwynkWeb.Router do
       # If an authenticated user must *not* be present:
       # on_mount {QwynkWeb.LiveUserAuth, :live_no_user}
     end
-  end
 
-  scope "/", QwynkWeb do
-    pipe_through :browser
+    auth_routes AuthController, Qwynk.Accounts.User, path: "/_/auth"
+    sign_out_route AuthController, "/_/sign-out"
 
-    get "/", PageController, :home
-    auth_routes AuthController, Qwynk.Accounts.User, path: "/auth"
-    sign_out_route AuthController
-
-    # Remove these if you'd like to use your own authentication views
-    sign_in_route register_path: "/register",
-                  reset_path: "/reset",
-                  auth_routes_prefix: "/auth",
+    sign_in_route path: "/_/sign-in",
+                  register_path: "/_/register",
+                  reset_path: "/_/reset",
+                  auth_routes_prefix: "/_/auth",
                   on_mount: [{QwynkWeb.LiveUserAuth, :live_no_user}],
                   overrides: [
                     QwynkWeb.AuthOverrides,
                     Elixir.AshAuthentication.Phoenix.Overrides.DaisyUI
                   ]
 
-    # Remove this if you do not want to use the reset password feature
-    reset_route auth_routes_prefix: "/auth",
+    reset_route path: "/_/password-reset",
+                auth_routes_prefix: "/_/auth",
                 overrides: [
                   QwynkWeb.AuthOverrides,
                   Elixir.AshAuthentication.Phoenix.Overrides.DaisyUI
                 ]
 
-    # Remove this if you do not use the confirmation strategy
     confirm_route Qwynk.Accounts.User, :confirm_new_user,
-      auth_routes_prefix: "/auth",
+      path: "/_/confirm_new_user",
+      auth_routes_prefix: "/_/auth",
       overrides: [QwynkWeb.AuthOverrides, Elixir.AshAuthentication.Phoenix.Overrides.DaisyUI]
 
-    # Remove this if you do not use the magic link strategy.
     magic_sign_in_route(Qwynk.Accounts.User, :magic_link,
-      auth_routes_prefix: "/auth",
+      path: "/_/magic_link",
+      auth_routes_prefix: "/_/auth",
       overrides: [QwynkWeb.AuthOverrides, Elixir.AshAuthentication.Phoenix.Overrides.DaisyUI]
     )
   end
-
-  # Other scopes may use custom stacks.
-  # scope "/api", QwynkWeb do
-  #   pipe_through :api
-  # end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:qwynk, :dev_routes) do
     # If you want to use the LiveDashboard in production, you should put
     # it behind authentication and allow only admins to access it.
-    # If your application does not have an admins-only section yet,
-    # you can use Plug.BasicAuth to set up some basic authentication
-    # as long as you are also using SSL (which you should anyway).
     import Phoenix.LiveDashboard.Router
 
-    scope "/dev" do
+    scope "/_/dev" do
       pipe_through :browser
 
       live_dashboard "/dashboard", metrics: QwynkWeb.Telemetry

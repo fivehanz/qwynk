@@ -22,7 +22,7 @@ defmodule Qwynk.Accounts.User.Senders.SendNewUserConfirmationEmail do
   end
 
   defp body(params) do
-    url = url(~p"/confirm_new_user/#{params[:token]}")
+    url = url(~p"/_/confirm_new_user/#{params[:token]}")
 
     """
     <p>Click this link to confirm your email:</p>

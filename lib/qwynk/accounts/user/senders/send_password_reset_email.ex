@@ -22,7 +22,7 @@ defmodule Qwynk.Accounts.User.Senders.SendPasswordResetEmail do
   end
 
   defp body(params) do
-    url = url(~p"/password-reset/#{params[:token]}")
+    url = url(~p"/_/password-reset/#{params[:token]}")
 
     """
     <p>Click this link to reset your password:</p>
