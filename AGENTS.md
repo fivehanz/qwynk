@@ -4,6 +4,7 @@ This is a web application written using the Phoenix web framework.
 
 - Use `mix precommit` alias when you are done with all changes and fix any pending issues
 - Use the already included and available `:req` (`Req`) library for HTTP requests, **avoid** `:httpoison`, `:tesla`, and `:httpc`. Req is included by default and is the preferred HTTP client for Phoenix apps
+- Production boot raises without `SECRET_KEY_BASE`, `TOKEN_SIGNING_SECRET` and `DATABASE_URL`; `PORT`, `POOL_SIZE`, `DNS_CLUSTER_QUERY` and `GEOIP_PATH` are optional. See the README's Configuration section
 
 ### Phoenix v1.8 guidelines
 
@@ -61,14 +62,22 @@ guarantee in PRD.md, and most are guarded by a test that must not be deleted.
    TTL is a safety net, not the invalidation mechanism.
 8. Never introduce Redis without explicit approval.
 9. Never introduce a background-job framework for analytics or token cleanup.
-10. Preserve FreeBSD compatibility: standard Mix, no Docker, no C NIF dependencies.
+10. Preserve FreeBSD compatibility: standard Mix, no Docker. Avoid new C NIF
+    dependencies; the accepted exception is `bcrypt_elixir`, which
+    AshAuthentication's password strategy requires and which compiles its NIF
+    from `c_src/` when dependencies build.
 11. Slugs are unique per domain, never globally. The cache key is `{host, slug}`
     and `resolve` takes both; anything keyed on slug alone is a bug.
 12. A bare domain root defaults to 404. Never make `/` redirect to sign-in — it
     advertises the admin panel on every customer domain.
 
-Two consequences of these rules that are easy to trip over:
+Consequences of these rules that are easy to trip over:
 
+- An unknown or deactivated Host must not reach Postgres on every request:
+  `Cache.domain/1` negative-caches misses for five minutes. Do not bypass it
+  in the redirect path.
+- Redirect responses carry `x-qwynk-cache` (`hit`, `miss` or `root`); the tests
+  assert it and ops reads it. Keep the header when touching the controller.
 - `config/config.exs` sets `default_actions_require_atomic?: true`. Any update
   action carrying an `after_action` hook (rule 7) needs `require_atomic? false`
   or Ash raises at compile time.
@@ -82,6 +91,27 @@ Two consequences of these rules that are easy to trip over:
   `Phoenix.Router.scoped_path/2` *and* defines the route inside the enclosing
   scope. Keep the auth macros in the root scope with explicit `/_/` paths;
   nesting them in `scope "/_"` yields `/_/_/register`.
+
+## Qwynk UI conventions
+
+- Dark-only and token-driven: colours, fonts and motion durations come from
+  `assets/css/app.css`, with `BRAND.md` as the spec. daisyUI contributes its
+  theme plugin only; components are hand-written Tailwind.
+- Use `<.input type="select">` for dropdowns. A hand-rolled
+  `<option :for={...}>` loop renders no `selected` marker, so LiveView's
+  patcher resets the control to the first option on every re-render and the
+  form then submits the wrong value silently. This already created a link on
+  the wrong domain once.
+- Slugs are immutable after create, and the edit form disables the field.
+  `EnsureSlug` runs whenever the changeset is built, so a slug field cannot be
+  left empty while bound to the form; the create form shows the real value and
+  offers generate and clear.
+- State derived from a form field (the URL prefix from the domain select) must
+  be recomputed in `handle_event("validate", ...)`, not assigned once when the
+  form opens.
+- Do not hide anything on small screens to fix a layout problem. Header height
+  was solved by wrapping and unpinning below `sm`, not by dropping the status
+  rail or sign out. Touch targets stay at least 36px.
 
 <!-- usage-rules-start -->
 
